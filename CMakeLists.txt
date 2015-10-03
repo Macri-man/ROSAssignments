@@ -51,15 +51,16 @@ find_package(catkin REQUIRED COMPONENTS
    	#Command.msg
    	#Concate.msg
    	#Chatter.msg
-#   Message2.msg
+    #Message2.msg
  )
 
 ## Generate services in the 'srv' folder
  add_service_files(
    FILES
-   Concate.srv
-   Command.srv
-   Chatter.srv
+   #Concate.srv
+   #Command.srv
+   #Chatter.srv
+   Messages.srv
 #   Service2.srv
  )
 
@@ -72,8 +73,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate added messages and services with any dependencies listed here
  generate_messages(
-   DEPENDENCIES
-   std_msgs
+  DEPENDENCIES
+  std_msgs
  )
 
 ################################################
@@ -153,6 +154,17 @@ target_link_libraries( chatter_node ${catkin_LIBRARIES} )
 target_link_libraries( subscribe_node ${catkin_LIBRARIES} )
 target_link_libraries( concate_node ${catkin_LIBRARIES} )
 target_link_libraries( control_node ${catkin_LIBRARIES} )
+
+
+#servers clients
+#add_executable(message_server src/servers/MessageServer.cxx)
+#target_link_libraries(message_server ${catkin_LIBRARIES})
+#add_dependencies(message_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+#add_executable(message_client src/clients/MessageClient.cxx)
+#target_link_libraries(message_client ${catkin_LIBRARIES})
+#add_dependencies(message_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 
 #############
 ## Install ##

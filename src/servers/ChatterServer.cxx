@@ -1,5 +1,5 @@
 #include "ros/ros.h"
-#include "assignment1/Chatter.h"
+#include "assignment1/Messages.h"
 
 bool chat(assignment1::Chatter::Request  &req,assignment1::Chatter::Response &res){
   res.B=req.A;
@@ -8,8 +8,7 @@ bool chat(assignment1::Chatter::Request  &req,assignment1::Chatter::Response &re
   return true;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv){
   ros::init(argc, argv, "chatter");
   ros::NodeHandle n;
 
