@@ -1,44 +1,45 @@
 #include "ros/ros.h"
-#include "assignment1/Messages.h"
+#include "assignment1/Messager.h"
 #include <sstream>
 #include <string>
 
 int count=0;
 int chatcount=0;
 
-bool concate(assignment1::Messages::Request  &req,assignment1::Messages::Response &res){
+bool concate(assignment1::Messager::Request  &req,assignment1::Messager::Response &res){
   std::stringstream ss;
-  ss << req.concate << " ";
+  ss << req.reqconcate << " ";
   if(count%5==0){
-    ROS_INFO("Concate: %s", req.concate.c_str());
+    res.concate=req.reqconcate;
+    ROS_INFO("Concate: %s", res.concate.c_str());
     ss.str(std::string());
   }
   count++;
   return true;
 }
 
-bool command(assignment1::Messages::Request  &req,assignment1::Messages::Response &res){
-    if(!(req.command == "start" || req.command == "stop" ||  req.command =="pause")){
-      ROS_INFO("Wrong Input: %s", req.command.c_str());
+bool command(assignment1::Messager::Request  &req,assignment1::Messager::Response &res){
+    if(!(req.reqcommand == "start" || req.reqcommand == "stop" ||  req.reqcommand =="pause")){
+      ROS_INFO("Wrong Input: %s", req.reqcommand.c_str());
     }else{
-      ROS_INFO("Command Sent: %s", req.command.c_str());
-      res.response=req.command;
+      ROS_INFO("Command Sent: %s", req.reqcommand.c_str());
+      res.command=req.reqcommand;
     }
   return true;
 }
 
-bool chat(assignment1::Chatter::Request  &req,assignment1::Chatter::Response &res){
+bool chatter(assignment1::Messager::Request  &req,assignment1::Messager::Response &res){
   std::stringstream ss;
-  ss << req.chatter << ++chatcount;
-  res.reschatter=ss.str();
-  ROS_INFO("request: %s", req.A);
-  ROS_INFO("sending back response: [%s]", res.B);
+  ss << req.reqchatter << ++chatcount;
+  res.chatter=ss.str();
+  ROS_INFO("request: %s", req.reqchatter.c_str());
+  ROS_INFO("sending back response: [%s]", res.chatter.c_str());
   return true;
 }
 
 int main(int argc, char **argv){
 
-  ros::init(argc, argv, "Message");
+  ros::init(argc, argv, "MessageServer");
   ros::NodeHandle n;
   ros::ServiceServer conservice = n.advertiseService("Concate", concate);
   ros::ServiceServer chatservice = n.advertiseService("Chatter", chatter);
