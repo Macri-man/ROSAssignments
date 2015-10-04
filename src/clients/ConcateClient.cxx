@@ -8,7 +8,7 @@ int main(int argc, char **argv){
   ros::init(argc, argv, "Concate");
   int count =0;
   ros::NodeHandle n;
-  ros::ServiceClient client = n.serviceClient<assignment1::Messager>("Concate");
+  ros::ServiceClient client = n.serviceClient<assignment1::Messager>("concate");
   assignment1::Messager srv;
   ros::Rate loop_rate(1);
   std_msgs::String msg;

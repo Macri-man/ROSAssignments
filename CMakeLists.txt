@@ -136,21 +136,21 @@ include_directories(
 # add_dependencies(CSRobotics ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(chatter_node src/chatter.cxx)
-add_executable(subscribe_node src/subscribe.cxx)
+add_executable(talker_node src/talker.cxx)
+add_executable(listener_node src/listener.cxx)
 add_executable(concate_node src/concate.cxx)
 add_executable(control_node src/control.cxx)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(chatter_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(subscribe_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(talker_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(listener_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(concate_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(control_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries( chatter_node ${catkin_LIBRARIES} )
-target_link_libraries( subscribe_node ${catkin_LIBRARIES} )
+target_link_libraries( talker_node ${catkin_LIBRARIES} )
+target_link_libraries( listener_node ${catkin_LIBRARIES} )
 target_link_libraries( concate_node ${catkin_LIBRARIES} )
 target_link_libraries( control_node ${catkin_LIBRARIES} )
 
@@ -159,27 +159,38 @@ add_executable(message_server src/servers/MessageServer.cxx)
 target_link_libraries(message_server ${catkin_LIBRARIES})
 add_dependencies(message_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_executable(control_server src/servers/ControlServer.cxx)
+target_link_libraries(control_server ${catkin_LIBRARIES})
+add_dependencies(control_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(concate_server src/servers/ConcateServer.cxx)
+target_link_libraries(concate_server ${catkin_LIBRARIES})
+add_dependencies(concate_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(talker_server src/servers/TalkerServer.cxx)
+target_link_libraries(talker_server ${catkin_LIBRARIES})
+add_dependencies(talker_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 #clients
 add_executable(message_client src/clients/MessageClient.cxx)
 target_link_libraries(message_client ${catkin_LIBRARIES})
 add_dependencies(message_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_executable(subscribe_client src/clients/SubscribeClient.cxx)
-target_link_libraries(subscribe_client ${catkin_LIBRARIES})
-add_dependencies(subscribe_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_executable(listener_client src/clients/ListenerClient.cxx)
+target_link_libraries(listener_client ${catkin_LIBRARIES})
+add_dependencies(listener_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_executable(concate_client src/clients/ConcateClient.cxx)
 target_link_libraries(concate_client ${catkin_LIBRARIES})
 add_dependencies(concate_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_executable(command_client src/clients/CommandClient.cxx)
-target_link_libraries(command_client ${catkin_LIBRARIES})
-add_dependencies(command_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_executable(control_client src/clients/ControlClient.cxx)
+target_link_libraries(control_client ${catkin_LIBRARIES})
+add_dependencies(control_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_executable(chatter_client src/clients/ChatterClient.cxx)
-target_link_libraries(chatter_client ${catkin_LIBRARIES})
-add_dependencies(chatter_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_executable(talker_client src/clients/TalkerClient.cxx)
+target_link_libraries(talker_client ${catkin_LIBRARIES})
+add_dependencies(talker_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
 
