@@ -8,13 +8,13 @@ int chatcount=0;
 
 bool concate(assignment1::Messager::Request  &req,assignment1::Messager::Response &res){
   std::stringstream ss;
-  ss << req.reqconcate << " ";
+  ss << req.reqchatter << " ";
   if(count%5==0){
-    res.concate=req.reqconcate;
+    res.concate=ss.str();
     ROS_INFO("Concate: %s", res.concate.c_str());
     ss.str(std::string());
   }
-  count++;
+  ++count;
   return true;
 }
 
@@ -29,9 +29,7 @@ bool command(assignment1::Messager::Request  &req,assignment1::Messager::Respons
 }
 
 bool chatter(assignment1::Messager::Request  &req,assignment1::Messager::Response &res){
-  std::stringstream ss;
-  ss << req.reqchatter << ++chatcount;
-  res.chatter=ss.str();
+  res.chatter=req.reqchatter;
   ROS_INFO("request: %s", req.reqchatter.c_str());
   ROS_INFO("sending back response: [%s]", res.chatter.c_str());
   return true;

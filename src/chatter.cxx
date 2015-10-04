@@ -5,14 +5,14 @@
 int state=0;
 std_msgs::String recieve_msg;
 
-int swap(std::string stuff){
-	if(stuff=="start"){
+int swap(std::string command){
+	if(command=="start"){
 		return 1;
-	}else if(stuff=="stop"){
+	}else if(command=="stop"){
 		return 2;
-	}else if(stuff=="pause"){
+	}else if(command=="pause"){
 		return 3;
-	}else if(stuff==""){
+	}else if(command==""){
 		return 0;
 	}else{
 		return -1;
@@ -42,16 +42,22 @@ int main(int argc, char **argv) {
 				ROS_INFO("NO Message has been received!");
 				break;
 			case 1:
+				ROS_INFO("Starting Publishing with command: %s",recieve_msg.data.c_str());
+				state=4;
+			case 4:
 				chatter_pub.publish(msg);
 				++count;
-				ROS_INFO("Starting Publishing with command: %s",recieve_msg.data.c_str());
 			break;
 			case 2:
-				count=0;
 				ROS_INFO("Stopped Publishing with command: %s",recieve_msg.data.c_str());
+				state=5;
+			case 5:
+				count=0;
 			break;
 			case 3:
 				ROS_INFO("Paused Publishing with command: %s",recieve_msg.data.c_str());
+			case 6:
+				
 			break;
 			default:
 				ROS_INFO("Something terrible happened with command: %s",recieve_msg.data.c_str());

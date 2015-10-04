@@ -1,9 +1,9 @@
-string reqconcate
 string reqcommand
 string reqchatter
+string reqconcate
 uint64 changestate
 ---
-string concate
 string command
 string chatter
+string concate
 uint64 state

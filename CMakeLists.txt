@@ -154,14 +154,34 @@ target_link_libraries( subscribe_node ${catkin_LIBRARIES} )
 target_link_libraries( concate_node ${catkin_LIBRARIES} )
 target_link_libraries( control_node ${catkin_LIBRARIES} )
 
-#servers clients
+#servers 
 add_executable(message_server src/servers/MessageServer.cxx)
 target_link_libraries(message_server ${catkin_LIBRARIES})
 add_dependencies(message_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+
+#clients
 add_executable(message_client src/clients/MessageClient.cxx)
 target_link_libraries(message_client ${catkin_LIBRARIES})
 add_dependencies(message_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(subscribe_client src/clients/SubscribeClient.cxx)
+target_link_libraries(subscribe_client ${catkin_LIBRARIES})
+add_dependencies(subscribe_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(concate_client src/clients/ConcateClient.cxx)
+target_link_libraries(concate_client ${catkin_LIBRARIES})
+add_dependencies(concate_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(command_client src/clients/CommandClient.cxx)
+target_link_libraries(command_client ${catkin_LIBRARIES})
+add_dependencies(command_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(chatter_client src/clients/ChatterClient.cxx)
+target_link_libraries(chatter_client ${catkin_LIBRARIES})
+add_dependencies(chatter_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+
 
 
 #############

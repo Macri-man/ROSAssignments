@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
 	while (ros::ok()) {
 		std_msgs::String msg;
 		std::string input;
-		std::cout << "Enter Command Master: ";
+		std::cout << "Enter Command: ";
 		std::cin >> msg.data;
 		if(!(msg.data == "start" || msg.data == "stop" ||  msg.data =="pause")){
 			ROS_INFO("Wrong Input: %s", msg.data.c_str());
