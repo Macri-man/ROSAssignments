@@ -65,9 +65,13 @@ int main(int argc, char **argv) {
 			//srv.request.reqcommand=recieve_msg.data;
 			if(client.call(srv)){
     			//ROS_INFO("Command: %s", srv.response.command.c_str());
+    			ROS_INFO("STATE: %d",state);
+    			recieve_msg.data=srv.response.command;
     			state=srv.response.state;
+    			ROS_INFO("STATE: %d",state);
     		}else{
     			ROS_ERROR("Failed to call service control_messages");
+    			return 1;
   			}
 		}
 		switch(state){
