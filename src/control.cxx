@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
 	ros::Publisher control_pub = n.advertise<std_msgs::String>("control_messages", 1000);
 	ros::Rate loop_rate(1);
 	int count = 0;
-	while (ros::ok()) {
+	while(ros::ok()){
 		std_msgs::String msg;
 		std::string input;
 		std::cout << "Enter Command: ";

@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     }else{
     	service=1;
     }
-    std::cerr << argv[1] << " " << service << "\n";
+    //std::cerr << argv[1] << " " << service << "\n";
 	ros::NodeHandle n;
 	assignment1::Messager srv;
 	ros::ServiceClient client;
@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 	}else{
 		client = n.serviceClient<assignment1::Messager>("control_messages",false);
 	}
-	std::cerr << "Valid:" << client.isValid() << " Persistent:" << client.isPersistent() << " Name:" << client.getService();
+	//std::cerr << "Valid:" << client.isValid() << " Persistent:" << client.isPersistent() << " Name:" << client.getService();
 	ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
 	ros::Rate loop_rate(1);
 	int count = 0;

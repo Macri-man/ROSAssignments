@@ -3,6 +3,37 @@
 #include <sstream>
 #include <string>
 #include <cstdlib>
+#include <termios.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <fcntl.h>
+
+//from http://cboard.cprogramming.com/c-programming/63166-kbhit-linux.html#post803210
+
+int kbhit(){
+struct termios oldt, newt;
+  int ch;
+  int oldf;
+ 
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+ 
+  ch = getchar();
+ 
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  fcntl(STDIN_FILENO, F_SETFL, oldf);
+ 
+  if(ch != EOF){
+    ungetc(ch, stdin);
+    return 1;
+  }
+ 
+  return 0;
+}
 
 int swap(std::string command){
   if(command=="start"){
@@ -18,16 +49,35 @@ int swap(std::string command){
   }
 }
 
+int state=0;
+
+int input =0;
+
 bool control(assignment1::Messager::Request  &req,assignment1::Messager::Response &res){
-  std::cout << "Enter Command:";
-  std::getline (std::cin,req.reqcommand);
-  if(req.reqcommand==""){
-    ROS_INFO("No Command has been received!");
-  }else if(!(req.reqcommand == "start" || req.reqcommand == "stop" ||  req.reqcommand =="pause")){
-    ROS_INFO("Wrong Input: [%s]", req.reqcommand.c_str());
+  if(input==0){
+  std::cout << "Enter Command: \n";
+  input=7;
+  }
+  std::string command;
+  char c;
+  if(kbhit()){
+    //std::cout << "keyboard hit";
+    while((c=std::cin.get())!='\n'){
+      command+=c;
+      //std::cout << c;
+    }
+    //std::cout << command;
+    ROS_INFO("Command Received: [%s]", command.c_str());
+    if(command.empty()){
+      ROS_INFO("No Command has been received!");
+    }else if(!(command == "start" || command == "stop" ||  command =="pause")){
+      ROS_INFO("Wrong Input: [%s]", command.c_str());
+    }else{
+      res.state=state=swap(command);
+    }
   }else{
-    res.command=req.reqcommand;
-    res.state=swap(req.reqcommand);
+    //std::cout <<"state:" << state;
+    res.state=state;
   }
   return true;
 }

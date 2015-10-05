@@ -57,11 +57,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate services in the 'srv' folder
  add_service_files(
    FILES
-   #Concate.srv
-   #Command.srv
-   #Chatter.srv
    Messager.srv
-#   Service2.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -160,11 +156,6 @@ target_link_libraries(control_server ${catkin_LIBRARIES})
 add_dependencies(control_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 #clients
-add_executable(control_client src/clients/ControlClient.cxx)
-target_link_libraries(control_client ${catkin_LIBRARIES})
-add_dependencies(control_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-
 
 #############
 ## Install ##
