@@ -30,9 +30,8 @@ int main(int argc, char **argv){
   std::stringstream ss;
   while (ros::ok()) {
 	std::cout << "Enter Command: ";   	
-	std::cin >> msg.data;
-	srv.request.reqcommand=msg.data;
-	srv.request.changestate=swap(msg.data);
+	std::cin >> srv.request.reqcommand;
+	srv.request.changestate=swap(srv.request.reqcommand);
 	ROS_INFO("Sent Command to server: %s", srv.request.reqcommand.c_str());
 	if (client.call(srv)){
     	ROS_INFO("Command: %s", srv.response.command.c_str());

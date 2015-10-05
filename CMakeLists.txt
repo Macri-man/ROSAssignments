@@ -155,43 +155,14 @@ target_link_libraries( concate_node ${catkin_LIBRARIES} )
 target_link_libraries( control_node ${catkin_LIBRARIES} )
 
 #servers 
-add_executable(message_server src/servers/MessageServer.cxx)
-target_link_libraries(message_server ${catkin_LIBRARIES})
-add_dependencies(message_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
 add_executable(control_server src/servers/ControlServer.cxx)
 target_link_libraries(control_server ${catkin_LIBRARIES})
 add_dependencies(control_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_executable(concate_server src/servers/ConcateServer.cxx)
-target_link_libraries(concate_server ${catkin_LIBRARIES})
-add_dependencies(concate_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-add_executable(talker_server src/servers/TalkerServer.cxx)
-target_link_libraries(talker_server ${catkin_LIBRARIES})
-add_dependencies(talker_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
 #clients
-add_executable(message_client src/clients/MessageClient.cxx)
-target_link_libraries(message_client ${catkin_LIBRARIES})
-add_dependencies(message_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-add_executable(listener_client src/clients/ListenerClient.cxx)
-target_link_libraries(listener_client ${catkin_LIBRARIES})
-add_dependencies(listener_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-add_executable(concate_client src/clients/ConcateClient.cxx)
-target_link_libraries(concate_client ${catkin_LIBRARIES})
-add_dependencies(concate_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
 add_executable(control_client src/clients/ControlClient.cxx)
 target_link_libraries(control_client ${catkin_LIBRARIES})
 add_dependencies(control_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-add_executable(talker_client src/clients/TalkerClient.cxx)
-target_link_libraries(talker_client ${catkin_LIBRARIES})
-add_dependencies(talker_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
 
 
 

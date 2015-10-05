@@ -19,19 +19,18 @@ int swap(std::string command){
 }
 
 bool control(assignment1::Messager::Request  &req,assignment1::Messager::Response &res){
-    std::cout << "Enter Command: ";     
-    std::cin >> res.command;
-    res.state=swap(res.command);
-    ROS_INFO("Command: [%s]",res.command.c_str());
-    if(res.command==""){
-      ROS_INFO("No Command has been received!");
-    }else if(!(res.command == "start" || res.command == "stop" ||  res.command =="pause")){
-      ROS_INFO("Wrong Input: [%s]", res.command.c_str());
-    }
+  std::cout << "Enter Command:";
+  std::getline (std::cin,req.reqcommand);
+  if(req.reqcommand==""){
+    ROS_INFO("No Command has been received!");
+  }else if(!(req.reqcommand == "start" || req.reqcommand == "stop" ||  req.reqcommand =="pause")){
+    ROS_INFO("Wrong Input: [%s]", req.reqcommand.c_str());
+  }else{
+    res.command=req.reqcommand;
+    res.state=swap(req.reqcommand);
+  }
   return true;
 }
-
-
 
 int main(int argc, char **argv){
 

@@ -1,9 +1,5 @@
 string reqcommand
-string reqchatter
-string reqconcate
 uint64 changestate
 ---
 string command
-string chatter
-string concate
 uint64 state
