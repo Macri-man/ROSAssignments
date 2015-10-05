@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <iostream>
 
 //kbhit from http://cboard.cprogramming.com/c-programming/63166-kbhit-linux.html#post803210
 
@@ -42,6 +43,8 @@ int swap(std::string command){
     return 2;
   }else if(command=="pause"){
     return 3;
+  }else if(command=="quit"){
+    ros::shutdown();
   }else{
     return -1;
   }
@@ -57,51 +60,90 @@ bool control(assignment1::Messager::Request  &req,assignment1::Messager::Respons
   }
   std::string command;
   char c;
-  if(kbhit()){
-    //std::cout << "keyboard hit";
-    while((c=std::cin.get())!='\n'){
-      command+=c;
+  while((c=getchar())!=EOF || !command.empty()){
+
+    if(c==EOF) continue;
+
+    
+    if(c=='\n') {
+      std::cerr << "\n";
+      break;
+    }
+      //std::cerr << command.length();
+      if(c=='\b' && !command.empty()){
+        //ROS_INFO("command backspace: %d",!command.empty());
+        //std::cerr << command.length();
+        std::cerr << "\b \b";
+
+        command.resize(command.length()-1);
+      }else if(c=='\b' && command.empty()){
+        std::cerr << "\r                                          \r";
+        //ROS_INFO("command backspace: %d",command.empty());
+        command.clear();
+      }else if(c >= 32 && c<128) {
+         //ROS_INFO("command: %d",command.empty());
+      //std::cout << c;
+        std::cerr << c;
+        command+=c;
+      }
       //std::cout << c;
     }
     //std::cout << command;
-    ROS_INFO("Command: [%s]", command.c_str());
+    
     if(command.empty()){
       ROS_INFO("No Command has been received!");
-    }else if(!(command == "start" || command == "stop" ||  command =="pause")){
+    }else if(!(command == "start" || command == "stop" ||  command =="pause" || command == "quit")){
       ROS_INFO("Wrong Input: [%s]", command.c_str());
       res.state=state;
     }else{
+      ROS_INFO("Command sent: [%s]", command.c_str());
       res.command=command;
       res.state=state=swap(command);
     }
-  }else{
-    std::cout <<"state:" << state << "\n";
+
+    //std::cout <<"state:" << state << "\n";
     switch(state){
         case 1:
-          state=4;
+          res.state=state=4;
           break;
         case 2:
-          state=5;
+          res.state=state=5;
           break;
         case 3:
-          state=6;
+          res.state=state=6;
           break;
         case -1:
           res.state=state;
         default:
           res.state=state;
       }
-  }
+  
   return true;
 }
 
 int main(int argc, char **argv){
 
   ros::init(argc, argv, "control_messages");
+
+struct termios oldt, newt;
+  int ch;
+  int oldf;
+ 
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+
   ros::NodeHandle n;
   ros::ServiceServer service = n.advertiseService("control_messages", control);
   ROS_INFO("Starting Control Service!");
   ros::spin();
+
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  fcntl(STDIN_FILENO, F_SETFL, oldf);
 
   return 0;
 }

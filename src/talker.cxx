@@ -18,6 +18,8 @@ int swap(std::string command){
 		return 3;
 	}else if(command==""){
 		return 0;
+	}else if(command=="quit"){
+		ros::shutdown();
 	}else{
 		return -1;
 	}
@@ -31,8 +33,9 @@ void controlCallback(const std_msgs::String::ConstPtr msg) {
 
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "talker");
+	ros::NodeHandle n;
 	if (argc != 2){
-      ROS_INFO("usage: talker_node service or talker_node publish");
+      ROS_INFO("usage: rosrun talker_node service  then type command in control_service node. \n rosrun talker_node publish  then type command in control_node node");
       return 1;
     }
     if(std::string(argv[1])=="publish"){
@@ -41,7 +44,6 @@ int main(int argc, char **argv) {
     	service=1;
     }
     //std::cerr << argv[1] << " " << service << "\n";
-	ros::NodeHandle n;
 	assignment1::Messager srv;
 	ros::ServiceClient client;
 	ros::Subscriber control_sub;
@@ -65,10 +67,10 @@ int main(int argc, char **argv) {
 			//srv.request.reqcommand=recieve_msg.data;
 			if(client.call(srv)){
     			//ROS_INFO("Command: %s", srv.response.command.c_str());
-    			ROS_INFO("STATE: %d",state);
+    			//ROS_INFO("STATE: %d",state);
     			recieve_msg.data=srv.response.command;
     			state=srv.response.state;
-    			ROS_INFO("STATE: %d",state);
+    			//ROS_INFO("STATE: %d",state);
     		}else{
     			ROS_ERROR("Failed to call service control_messages");
     			return 1;

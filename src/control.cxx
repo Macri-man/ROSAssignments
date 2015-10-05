@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
 		std::string input;
 		std::cout << "Enter Command: ";
 		std::cin >> msg.data;
-		if(!(msg.data == "start" || msg.data == "stop" ||  msg.data =="pause")){
+		if(!(msg.data == "start" || msg.data == "stop" ||  msg.data =="pause" || msg.data=="quit")){
 			ROS_INFO("Wrong Input: %s", msg.data.c_str());
 		}else{
 			ROS_INFO("Command Sent: %s", msg.data.c_str());
