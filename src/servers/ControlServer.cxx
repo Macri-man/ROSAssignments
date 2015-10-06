@@ -69,40 +69,22 @@ bool control(assignment1::Messager::Request  &req,assignment1::Messager::Respons
       std::cerr << "\n";
       break;
     }
-      //std::cerr << command.length();
-      if(c=='\b' && !command.empty()){
-        //ROS_INFO("command backspace: %d",!command.empty());
-        //std::cerr << command.length();
+      if((c=='\b' || c=='\x7f') && !command.empty()){
         std::cerr << "\b \b";
 
         command.resize(command.length()-1);
-      }else if(c=='\b' && command.empty()){
+      }else if((c=='\b' || c=='\x7f') && command.empty()){
         std::cerr << "\r                                          \r";
-        //ROS_INFO("command backspace: %d",command.empty());
         command.clear();
       }else if(c >= 32 && c<128) {
-         //ROS_INFO("command: %d",command.empty());
-      //std::cout << c;
         std::cerr << c;
         command+=c;
       }
-      //std::cout << c;
     }
-    //std::cout << command;
     
     if(command.empty()){
-      ROS_INFO("No Command has been received!");
-    }else if(!(command == "start" || command == "stop" ||  command =="pause" || command == "quit")){
-      ROS_INFO("Wrong Input: [%s]", command.c_str());
-      res.state=state;
-    }else{
-      ROS_INFO("Command sent: [%s]", command.c_str());
-      res.command=command;
-      res.state=state=swap(command);
-    }
-
-    //std::cout <<"state:" << state << "\n";
-    switch(state){
+      //ROS_INFO("No Command has been received!");
+      switch(state){
         case 1:
           res.state=state=4;
           break;
@@ -117,6 +99,13 @@ bool control(assignment1::Messager::Request  &req,assignment1::Messager::Respons
         default:
           res.state=state;
       }
+    }else if(!(command == "start" || command == "stop" ||  command =="pause" || command == "quit")){
+      ROS_INFO("Wrong Input: [%s]", command.c_str());
+    }else{
+      ROS_INFO("Command sent: [%s]", command.c_str());
+      res.command=command;
+      res.state=state=swap(command);
+    }
   
   return true;
 }

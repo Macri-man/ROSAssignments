@@ -69,6 +69,7 @@ int main(int argc, char **argv) {
     			//ROS_INFO("Command: %s", srv.response.command.c_str());
     			//ROS_INFO("STATE: %d",state);
     			recieve_msg.data=srv.response.command;
+    			//std::cerr << "state received: " << srv.response.state << "\n";
     			state=srv.response.state;
     			//ROS_INFO("STATE: %d",state);
     		}else{
@@ -76,6 +77,7 @@ int main(int argc, char **argv) {
     			return 1;
   			}
 		}
+		//std::cerr << "state before switch: " << state << "\n";
 		switch(state){
 			case 0:
 				ROS_INFO("NO Command has been received!");

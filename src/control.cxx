@@ -18,6 +18,9 @@ int main(int argc, char **argv) {
 		}else{
 			ROS_INFO("Command Sent: %s", msg.data.c_str());
 			control_pub.publish(msg);
+			if(msg.data=="quit"){
+				ros::shutdown();
+			}
 		}
 		ros::spinOnce();
 		loop_rate.sleep();
