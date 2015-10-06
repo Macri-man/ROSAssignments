@@ -9,33 +9,6 @@
 #include <fcntl.h>
 #include <iostream>
 
-//kbhit from http://cboard.cprogramming.com/c-programming/63166-kbhit-linux.html#post803210
-
-int kbhit(){
-struct termios oldt, newt;
-  int ch;
-  int oldf;
- 
-  tcgetattr(STDIN_FILENO, &oldt);
-  newt = oldt;
-  newt.c_lflag &= ~(ICANON | ECHO);
-  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
- 
-  ch = getchar();
- 
-  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-  fcntl(STDIN_FILENO, F_SETFL, oldf);
- 
-  if(ch != EOF){
-    ungetc(ch, stdin);
-    return 1;
-  }
- 
-  return 0;
-}
-
 int swap(std::string command){
   if(command=="start"){
     return 1;
@@ -64,14 +37,12 @@ bool control(assignment1::Messager::Request  &req,assignment1::Messager::Respons
 
     if(c==EOF) continue;
 
-    
     if(c=='\n') {
       std::cerr << "\n";
       break;
     }
       if((c=='\b' || c=='\x7f') && !command.empty()){
         std::cerr << "\b \b";
-
         command.resize(command.length()-1);
       }else if((c=='\b' || c=='\x7f') && command.empty()){
         std::cerr << "\r                                          \r";

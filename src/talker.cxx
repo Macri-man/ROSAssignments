@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
 	//std::cerr << "Valid:" << client.isValid() << " Persistent:" << client.isPersistent() << " Name:" << client.getService();
 	ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
 	ros::Rate loop_rate(1);
-	int count = 0;
+	int count=0;
 	while (ros::ok()) {
 		std_msgs::String msg;
 		std::stringstream ss;
@@ -70,7 +70,9 @@ int main(int argc, char **argv) {
     			//ROS_INFO("STATE: %d",state);
     			recieve_msg.data=srv.response.command;
     			//std::cerr << "state received: " << srv.response.state << "\n";
-    			state=srv.response.state;
+    			if(srv.response.state!=-1){
+    				state=srv.response.state;
+    			}
     			//ROS_INFO("STATE: %d",state);
     		}else{
     			ROS_ERROR("Failed to call service control_messages");
@@ -94,17 +96,25 @@ int main(int argc, char **argv) {
 				ROS_INFO("Stopped Publishing with command: %s",recieve_msg.data.c_str());
 				state=5;
 			case 5:
-				ROS_INFO("%s", msg.data.c_str());
 				count=0;
+				ss.str(std::string());
+				ss << "hello world " << count;
+				msg.data = ss.str();
+				ROS_INFO("%s", msg.data.c_str());
 			break;
 			case 3:
 				ROS_INFO("Paused Publishing with command: %s",recieve_msg.data.c_str());
 				state=6;
 			case 6:
+				if(count!=0){
+					ss.str(std::string());
+					ss << "hello world " << (count-1);
+				}
+				msg.data = ss.str();
 				ROS_INFO("%s", msg.data.c_str());
 			break;
 			default:
-				ROS_INFO("Something terrible happened with command: %s",recieve_msg.data.c_str());
+				ROS_ERROR("Something terrible happened with command: %s",recieve_msg.data.c_str());
 		}
 		//ROS_INFO("%s", msg.data.c_str());
 		ros::spinOnce();
