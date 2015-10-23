@@ -1,0 +1,5 @@
+string reqcommand
+uint64 changestate
+---
+string command
+uint64 state
