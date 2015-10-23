@@ -1,0 +1,18 @@
+<launch>
+
+<node 
+	pkg="stage_ros"
+	type="stageros"
+	name="stage_app"
+	respawn="false"
+	args="/home/csguest/catkin_ros/src/Stage/willow-erratic.world"
+/>
+
+<node 
+	pkg="stage_control"
+	type="stage_mover"
+	name="stage_mover_demo"
+	respawn="false"
+	launch-prefix="gnome-terminal -e"
+/>
+</launch>
