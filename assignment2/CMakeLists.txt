@@ -100,26 +100,28 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES assignment2
-#  CATKIN_DEPENDS roscpp rospy std_msgs
-#  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES assignment2
+  CATKIN_DEPENDS roscpp rospy std_msgs
+  DEPENDS system_lib
 )
 
 ###########
 ## Build ##
 ###########
 
+#set (CMAKE_CXX_FLAGS "-ltcl -ltk -pthread")
+
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
-include_directories(
-  ${catkin_INCLUDE_DIRS}
-)
+#include_directories( 
+#  ${catkin_INCLUDE_DIRS}
+#)
 
 ## Declare a C++ library
-# add_library(assignment2
-#   src/${PROJECT_NAME}/assignment2.cpp
+ #add_library(assignment2
+# 	STATIC  
 # )
 
 ## Add cmake target dependencies of the library
@@ -128,16 +130,18 @@ include_directories(
 # add_dependencies(assignment2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(assignment2_node src/assignment2_node.cpp)
+ add_executable(assignment2_node src/cpptkbase.h src/cpptk.h src/stage.cxx src/cpptkbase.cc src/cpptk.cc)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(assignment2_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ add_dependencies(assignment2_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(assignment2_node
-#   ${catkin_LIBRARIES}
-# )
+ target_link_libraries(
+ 	assignment2_node
+   ${catkin_LIBRARIES}
+   
+ )
 
 #############
 ## Install ##
