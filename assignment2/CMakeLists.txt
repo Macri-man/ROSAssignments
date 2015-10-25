@@ -111,6 +111,7 @@ catkin_package(
 ###########
 
 #set (CMAKE_CXX_FLAGS "-ltcl -ltk -pthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/local/include/ -L/usr/local/lib -g")
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
@@ -123,6 +124,8 @@ catkin_package(
  #add_library(assignment2
 # 	STATIC  
 # )
+
+link_directories(/usr/local/lib)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -140,6 +143,8 @@ catkin_package(
  target_link_libraries(
  	assignment2_node
    ${catkin_LIBRARIES}
+   tcl8.6 
+   tk8.6
    
  )
 

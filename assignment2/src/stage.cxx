@@ -6,9 +6,12 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <utility>
+#include <functional>
 #include <geometry_msgs/Twist.h>
 #include <sstream>
 #include <cmath>
+#include <ctime>
 
 using namespace Tk;
 using namespace std;
@@ -53,6 +56,8 @@ struct Graph{
 		start.y=init.first.y;
 		goal.x=init.second.x;
 		goal.y=init.second.y;
+		vertices.push_back(init.second);
+		".c" << create(line, Point(800,800), Point(0,0)) -Tk::fill("black");
 	}
 	//int delta=20;
 	//constint arraywidth=820;
@@ -114,6 +119,7 @@ GVertex new_conf(GVertex pnear,GVertex prand,int delta){
 }
 
 GVertex rand_conf(){
+	cerr << "random configuration" << endl;
 	srand (time(NULL));
 	int x = rand() % arraywidth + 1;
 	int y = rand() % arrayheight + 1;
@@ -121,6 +127,7 @@ GVertex rand_conf(){
 }
 
 void add_vertex(GVertex pnear,GVertex pnew,Graph g){
+	cerr << "add vertex" << endl;
 	g.lines.push_back(".c" << create(line, Point(pnear.x,pnear.y), Point(pnew.x,pnew.y)) -Tk::fill("black"));
 	g.vertices.push_back(pnew);
 	g.edges.push_back(GEdges(pnear,pnew));
@@ -130,6 +137,7 @@ Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta){
 	GVertex prand,pnear,pnew;
 	Graph g=Graph(qinit,kvertices,delta);
 	for(int i = 1; i < g.maxvertices; ++i){
+		cerr << "Iteration:" << i << endl;
 		prand=rand_conf();
 		pnear=nearest_vetex(prand,g);
 		pnew=new_conf(pnear,prand,g.delta);
@@ -186,21 +194,31 @@ int main(int argc, char **argv){
 
 	ros::Rate loop_rate(10);
 
+	 pair<GVertex,GVertex> stuff = make_pair(start,goal);
+
 	try{    
         init(argv[0]);
         frame(".f") -relief(raised) -borderwidth(1);         
-        canvas(".c") -background("white") -width(arraywidth) -height(arrayheight);
+        pack(canvas(".c") -background("white") -width(arraywidth) -height(arrayheight));
+
+        update();
+        cerr << "start";
+        RRT(stuff,5000,7);
         wm(resizable, ".", false, false);
         runEventLoop();
     }catch (exception const &e){
         cerr << "Error: " << e.what() << '\n';
     }
 
-	while(ros::ok()){
+   
+
+    //RRT(stuff,5000,7);
+
+	/*while(ros::ok()){
 		
 		cmd_vel_pub_.publish(base_cmd);
 		ros::spinOnce();
 		loop_rate.sleep();
-	}
+	}*/
 	return 0;
 }
