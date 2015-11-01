@@ -111,8 +111,8 @@ catkin_package(
 ###########
 
 #set (CMAKE_CXX_FLAGS "-ltcl -ltk -pthread")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/local/include/ -L/usr/local/lib -g")
-
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/local/include/ -L/usr/local/lib -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_REENTRANT -I/usr/include/SDL2  -g")
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
@@ -133,8 +133,8 @@ link_directories(/usr/local/lib)
 # add_dependencies(assignment2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
- add_executable(assignment2_node src/cpptkbase.h src/cpptk.h src/stage.cxx src/cpptkbase.cc src/cpptk.cc)
-
+ #add_executable(assignment2_node src/cpptkbase.h src/cpptk.h src/stage.cxx src/cpptkbase.cc src/cpptk.cc)
+add_executable(assignment2_node src/stage.cxx)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
  add_dependencies(assignment2_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -143,8 +143,10 @@ link_directories(/usr/local/lib)
  target_link_libraries(
  	assignment2_node
    ${catkin_LIBRARIES}
-   tcl8.6 
-   tk8.6
+   #tcl8.6 
+   #tk8.6
+   SDL2
+
    
  )
 
