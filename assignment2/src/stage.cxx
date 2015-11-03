@@ -2,7 +2,6 @@
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
 #include <std_msgs/String.h>
-//#include "cpptk.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <iostream>
@@ -15,11 +14,7 @@
 #include <cmath>
 #include <ctime>
 
-//using namespace Tk;
 using namespace std;
-
-//int bitmap[][];
-
 
 const int arraywidth=820;
 const int arrayheight=700;
