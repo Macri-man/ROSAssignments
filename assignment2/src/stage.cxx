@@ -4,6 +4,7 @@
 #include <std_msgs/String.h>
 //#include "cpptk.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -17,12 +18,19 @@
 //using namespace Tk;
 using namespace std;
 
+//int bitmap[][];
+
+
 const int arraywidth=820;
 const int arrayheight=700;
 const int state = 0;
 
 SDL_Renderer *renderer = NULL;
 SDL_Window *win = NULL;
+SDL_Texture *texture=NULL;
+SDL_Surface *surface=NULL;
+SDL_PixelFormat *fmt=NULL;
+
 
 struct GVertex {
 	int x;
@@ -161,7 +169,7 @@ Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta){
     	}
 
     	SDL_RenderPresent(renderer);
-    	SDL_Delay( 2000 );
+    	SDL_Delay(500);
 
 	}
 	return g;
@@ -182,36 +190,55 @@ int main(int argc, char **argv){
         fprintf(stderr, "Error: Unable to init SDL: %s\n", SDL_GetError());
         exit(1);
     }
+
+    int image_flags = IMG_INIT_PNG;
+	if(IMG_Init(image_flags) != image_flags){
+    	cout << "Error: " << IMG_GetError() << endl;
+	}
+
     win = SDL_CreateWindow("RRT GRAPH", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,arraywidth, arrayheight,SDL_WINDOW_SHOWN);
 
-    if (!win) {
+    if(!win){
        	fprintf(stderr, "Unable to initilize SDL2: %s\n", SDL_GetError());
        	SDL_Quit();
        	exit(1);
     }
 
-    renderer = SDL_CreateRenderer(win, -1, 0);
+    string filepath = "/home/csguest/catkin_ros/src/Stage/bitmaps/autolab.png";
 
+    surface=IMG_Load(filepath.c_str());
+    //surface = SDL_LoadBMP(../Stage/bitmaps/autolab.png);
+    //surface = CreateRGBSurfaceFrom(,width,height,32,0,0,0,0);
 
-
-    if(SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255)!=0){
-        fprintf(stderr, "Error: Unable to set color: %s\n", SDL_GetError());
+    if(!surface){
+    	fprintf(stderr, "Create Surface failed: %s\n", SDL_GetError());
         exit(1);
     }
 
-    //SDL_Rect r;
-   // r.x = 50;
-    //r.y = 50;
-   // r.w = 50;
-   // r.h = 50;
+    SDL_LockSurface(surface);
 
-    SDL_SetRenderDrawColor( renderer, 0, 0, 255, 255 );
+    /*
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 1024, 768);
+
+    if(!texture){
+    	fprintf(stderr, "Unable to create texture SDL2: %s\n", SDL_GetError());
+       	SDL_Quit();
+       	exit(1);
+    }*/
+
+    renderer = SDL_CreateRenderer(win, -1, 0);
+    texture=SDL_CreateTextureFromSurface(renderer, surface);
+
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
+
 
     // Render rect
    // SDL_RenderFillRect( renderer, &r );
 
     // Render the rect to the screen
-    SDL_RenderPresent(renderer);
+    //SDL_RenderPresent(renderer);
 
 
 	cout << "What is the intial location on a map x,y \n";
@@ -257,6 +284,9 @@ int main(int argc, char **argv){
 		loop_rate.sleep();
 	}
 
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyTexture(texture);
+	SDL_FreeSurface(surface);
 	SDL_DestroyWindow(win);
     SDL_Quit();
 

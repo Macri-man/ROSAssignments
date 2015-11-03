@@ -112,7 +112,8 @@ catkin_package(
 
 #set (CMAKE_CXX_FLAGS "-ltcl -ltk -pthread")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/local/include/ -L/usr/local/lib -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_REENTRANT -I/usr/include/SDL2  -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
@@ -143,12 +144,19 @@ add_executable(assignment2_node src/stage.cxx)
  target_link_libraries(
  	assignment2_node
    ${catkin_LIBRARIES}
+   ${SDL2_LIBRARIES} 
+   ${SDL2IMAGE_LIBRARIES}
    #tcl8.6 
    #tk8.6
    SDL2
-
-   
  )
+
+INCLUDE(FindPkgConfig)
+
+PKG_SEARCH_MODULE(SDL2 REQUIRED sdl2)
+PKG_SEARCH_MODULE(SDL2IMAGE REQUIRED SDL2_image>=2.0.0)
+
+INCLUDE_DIRECTORIES(${SDL2_INCLUDE_DIRS} ${SDL2IMAGE_INCLUDE_DIRS})
 
 #############
 ## Install ##
