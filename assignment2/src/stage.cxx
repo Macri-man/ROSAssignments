@@ -45,8 +45,10 @@ struct GVertex {
 struct GEdges{
 	GEdges(){}
 	GEdges(GVertex v,GVertex p){
-		one = v;
-		two = p;
+		one.x = v.x;
+		one.y = v.y;
+		two.x = p.x;
+		two.y = p.y;
 	}
 	GVertex one;
 	GVertex two;
@@ -177,13 +179,14 @@ GVertex rand_conf(){
 		SDL_GetRGBA(pixel,surface->format,&red,&green,&blue,&alpha);
 
 		cerr << "Pixel Color -> R: "<< (int)red << " G: " << (int)green << " B: " << (int)blue <<  " A: " << (int)alpha << endl;
-	}while(!red && !green && !blue);
+	}while(red!=0 && green!=0 && blue!=0);
 	return GVertex(x,y);
 }
 
 void add_vertex(GVertex pnear,GVertex pnew){
 	cerr << "Add Vertex" << endl;
 	SDL_Point p={pnew.x,pnew.y};
+	//SDL_Point p={pnear.x,pnear.y};
 	g.renderpoints.push_back(p);
 	g.vertices.push_back(pnew);
 	g.edges.push_back(GEdges(pnear,pnew));
@@ -200,32 +203,44 @@ Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta){
 		add_vertex(pnear,pnew);
 
 		//SDL_RenderPresent(renderer);
-		cerr << "List of points: " << i << endl;
-		for(int k=0;k<g.renderpoints.size();k++){
-			cerr << "X: " << g.renderpoints[k].x << " Y: " << g.renderpoints[k].y << endl;
-		}
+		//cerr << "List of points: " << i << endl;
+		cerr << "NEW points: " << i << endl;
+		cerr << "X: " << g.renderpoints[g.renderpoints.size()-1].x << " Y: " << g.renderpoints[g.renderpoints.size()-1].y << endl;
+		//for(int k=0;k<g.renderpoints.size();k++){
+			//cerr << "X: " << g.renderpoints[k].x << " Y: " << g.renderpoints[k].y << endl;
+		//}
 
 		SDL_RenderClear(renderer);
     	SDL_RenderCopy(renderer, texture, NULL, NULL);
-		if(SDL_RenderDrawLines(renderer,&g.renderpoints[0],g.renderpoints.size())!=0){
+		/*if(SDL_RenderDrawLines(renderer,&g.renderpoints[0],g.renderpoints.size())!=0){
         	fprintf(stderr, "Error: Unable to render lines: %s\n", SDL_GetError());
         	exit(1);
+    	}*/
+        for(int e=0;e<g.edges.size();++e){
+       		if(SDL_RenderDrawLine(renderer,g.edges[e].one.x,g.edges[e].one.y,g.edges[e].two.x,g.edges[e].two.y)!=0){
+        		fprintf(stderr, "Error: Unable to render lines: %s\n", SDL_GetError());
+        		exit(1);
+    		}
     	}
 
     	SDL_RenderPresent(renderer);
     	//SDL_RenderPresent(renderer);
 
-    	if(pnew.x==g.start.x&&pnew.y==g.start.y){
+    	if((pnew.x==g.start.x)&&(pnew.y==g.start.y)){
     		cerr << "Graph complete" << endl;
     		SDL_RenderPresent(renderer);
     		return g;
     	}
 
     	SDL_Event e;
-        if (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) {
-               exit(1);
-            }
+        while(SDL_PollEvent(&e)) {
+        	switch(e.type){
+        		case SDL_QUIT:
+        			exit(1);
+        		default:
+        			continue;
+        	}
+            
         }
     	SDL_Delay(500);
 
