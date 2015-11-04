@@ -25,6 +25,9 @@ SDL_Window *win = NULL;
 SDL_Texture *texture=NULL;
 SDL_Surface *surface=NULL;
 SDL_PixelFormat *fmt=NULL;
+Uint32 temp, pixel;
+Uint8 red, green, blue, alpha;
+SDL_Color color;
 
 
 struct GVertex {
@@ -49,20 +52,20 @@ struct GEdges{
 	GVertex two;
 };
 
-
-float dist(GVertex a, GVertex b){
-	return sqrt(pow(a.x-b.x,2)+pow(a.y-b.y,2));
+float dist(GVertex a,GVertex b){
+	return sqrt(((a.x-b.x)*(a.x-b.x))+((a.y-b.y)*(a.y-b.y)));
 }
 
 struct Graph{
 	Graph(){}
-	Graph(pair<GVertex, GVertex> init, int k,int delta){
+	Graph(pair<GVertex, GVertex> init, int k,int newdelta){
 		maxvertices=k;
 		start.x=init.first.x;
 		start.y=init.first.y;
 		goal.x=init.second.x;
 		goal.y=init.second.y;
 		vertices.push_back(init.second);
+		delta = newdelta;
 		//".c" << create(line, Point(800,800), Point(0,0)) -Tk::fill("black");
 	}
 	//int delta=20;
@@ -104,10 +107,42 @@ Algorithm BuildRRT
         return p1[0] + EPSILON*cos(theta), p1[1] + EPSILON*sin(theta)
 */
 
+Uint32 getpixel(SDL_Surface *surface, int x, int y)
+{
+    int bpp = surface->format->BytesPerPixel;
+    /* Here p is the address to the pixel we want to retrieve */
+    Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+
+    switch(bpp) {
+    case 1:
+        return *p;
+        break;
+
+    case 2:
+        return *(Uint16 *)p;
+        break;
+
+    case 3:
+        if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
+            return p[0] << 16 | p[1] << 8 | p[2];
+        else
+            return p[0] | p[1] << 8 | p[2] << 16;
+        break;
+
+    case 4:
+        return *(Uint32 *)p;
+        break;
+
+    default:
+        return 0;       /* shouldn't happen, but avoids warnings */
+    }
+}
+
 GVertex nearest_vetex(GVertex prand){
+	cerr << "Nearest Vertex" << endl;
 	GVertex temp=GVertex(g.vertices[0]);
 	for(int i=0;i<g.vertices.size();++i){
-		if(dist(prand,g.vertices[i])<dist(prand,temp)){
+		if(dist(g.vertices[i],prand)<=dist(temp,prand)){
 			temp.x=g.vertices[i].x;
 			temp.y=g.vertices[i].y;
 		}
@@ -116,25 +151,38 @@ GVertex nearest_vetex(GVertex prand){
 }
 
 GVertex new_conf(GVertex pnear,GVertex prand,int delta){
-	if(dist(pnear,prand)< delta){
+	cerr << "NEW Configuration" << endl;
+	if(dist(pnear,prand) < delta){
+		cerr << "dist" << dist(pnear,prand) << "less than" << delta << endl;
 		return prand;
 	}else{
-		float theta = atan2(prand.x-pnear.x,prand.y-pnear.y);
+		cerr << "Else new config" << endl;
+		float theta = atan2(prand.y-pnear.y,prand.x-pnear.x);
 		return GVertex(pnear.x+delta*cos(theta),pnear.y+delta*sin(theta));
 	}
 }
 
 GVertex rand_conf(){
-	cerr << "random configuration" << endl;
-	srand (time(NULL));
-	int x = rand() % (arraywidth) + 1;
-	int y = rand() % (arrayheight) + 1;
+	cerr << "Random Configuration" << endl;
+	//fmt = surface->format;
+
+	int x;
+	int y;
+	do{
+		x = rand() % (arraywidth) + 1;
+		y = rand() % (arrayheight) + 1;
+		SDL_LockSurface(surface);
+		pixel = getpixel(surface,x,y);
+		SDL_UnlockSurface(surface);
+		SDL_GetRGBA(pixel,surface->format,&red,&green,&blue,&alpha);
+
+		cerr << "Pixel Color -> R: "<< (int)red << " G: " << (int)green << " B: " << (int)blue <<  " A: " << (int)alpha << endl;
+	}while(!red && !green && !blue);
 	return GVertex(x,y);
 }
 
 void add_vertex(GVertex pnear,GVertex pnew){
-	cerr << "add vertex" << endl;
-	//g.lines.push_back(".c" << create(line, Point(pnear.x,pnear.y), Point(pnew.x,pnew.y)) -Tk::fill("black"));
+	cerr << "Add Vertex" << endl;
 	SDL_Point p={pnew.x,pnew.y};
 	g.renderpoints.push_back(p);
 	g.vertices.push_back(pnew);
@@ -145,25 +193,40 @@ Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta){
 	GVertex prand,pnear,pnew;
 	g=Graph(qinit,kvertices,delta);
 	for(int i = 1; i <= g.maxvertices; ++i){
-		cerr << "Iteration:" << i << endl;
+		cerr << "Iteration: " << i << endl;
 		prand=rand_conf();
 		pnear=nearest_vetex(prand);
 		pnew=new_conf(pnear,prand,g.delta);
 		add_vertex(pnear,pnew);
 
-		SDL_RenderPresent(renderer);
-		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
-		for(int i=0;i<g.renderpoints.size();i++){
-			cout << g.renderpoints[i].x << g.renderpoints[i].y;
+		//SDL_RenderPresent(renderer);
+		cerr << "List of points: " << i << endl;
+		for(int k=0;k<g.renderpoints.size();k++){
+			cerr << "X: " << g.renderpoints[k].x << " Y: " << g.renderpoints[k].y << endl;
 		}
 
+		SDL_RenderClear(renderer);
+    	SDL_RenderCopy(renderer, texture, NULL, NULL);
 		if(SDL_RenderDrawLines(renderer,&g.renderpoints[0],g.renderpoints.size())!=0){
         	fprintf(stderr, "Error: Unable to render lines: %s\n", SDL_GetError());
         	exit(1);
     	}
 
     	SDL_RenderPresent(renderer);
+    	//SDL_RenderPresent(renderer);
+
+    	if(pnew.x==g.start.x&&pnew.y==g.start.y){
+    		cerr << "Graph complete" << endl;
+    		SDL_RenderPresent(renderer);
+    		return g;
+    	}
+
+    	SDL_Event e;
+        if (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+               exit(1);
+            }
+        }
     	SDL_Delay(500);
 
 	}
@@ -180,6 +243,7 @@ int main(int argc, char **argv){
 	int state;
 
 	int x,y;
+	srand (time(NULL));
 
 	if(SDL_Init(SDL_INIT_EVERYTHING)!=0){
         fprintf(stderr, "Error: Unable to init SDL: %s\n", SDL_GetError());
@@ -210,7 +274,9 @@ int main(int argc, char **argv){
         exit(1);
     }
 
-    SDL_LockSurface(surface);
+
+
+    //SDL_LockSurface(surface);
 
     /*
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 1024, 768);
@@ -227,14 +293,12 @@ int main(int argc, char **argv){
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 
-
-    // Render rect
-   // SDL_RenderFillRect( renderer, &r );
-
-    // Render the rect to the screen
+   	//SDL_RenderFillRect( renderer, &r );
+    //Render the rect to the screen
     //SDL_RenderPresent(renderer);
-
+    //SDL_SetRenderDrawColor(SDL_Renderer* renderer,0,0,0,255)
 
 	cout << "What is the intial location on a map x,y \n";
 	cin >> x >> y;
@@ -248,32 +312,14 @@ int main(int argc, char **argv){
 
 	ros::Rate loop_rate(10);
 
-	pair<GVertex,GVertex> stuff = make_pair(start,goal);
+	pair<GVertex,GVertex> ginit = make_pair(start,goal);
 
-	/*try{    
-        init(argv[0]);
-        frame(".f") -relief(raised) -borderwidth(1);         
-        pack(canvas(".c") -background("white") -width(arraywidth) -height(arrayheight));
-
-        update();
-        cerr << "start";
-        RRT(stuff,5000,7);
-        wm(resizable, ".", false, false);
-        runEventLoop();
-    }catch (exception const &e){
-        cerr << "Error: " << e.what() << '\n';
-    }*/
+	RRT(ginit,3000,4);
 
 	while(ros::ok()){
 		
 		cmd_vel_pub_.publish(base_cmd);
-		RRT(stuff,10,20);
-		SDL_Event e;
-        if (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) {
-                break;
-            }
-        }
+		
 
 		ros::spinOnce();
 		loop_rate.sleep();
