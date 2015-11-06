@@ -16,10 +16,6 @@
 
 using namespace std;
 
-const int arraywidth=820;
-const int arrayheight=700;
-const int state = 0;
-
 string tf_prefix;
 
 SDL_Renderer *renderer = NULL;
@@ -102,61 +98,73 @@ struct Graph{
 	GNodes root;
 }g;
 
-GVertex robpos;
-
-GVertex getRobotPosition();
-vector<GVertex> Bresenham(GVertex point1, GVertex point2);
-Uint32 getpixel(SDL_Surface *surface, int x, int y);
-GVertex normalize(GVertex point);
-GVertex nearestVertex(GVertex prand);
-bool checkLine(GVertex pnear, GVertex prand);
-bool checkPixel(int x, int y);
-GVertex new_conf(GVertex pnear,GVertex prand,int delta);
-pair<GVertex, GVertex> rand_conf();
-Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta);
-void add_vertex(GVertex pnear,GVertex pnew);
-float dist(GVertex a,GVertex b);
 void getInput();
+void getRobotPosition();
+float dist(GVertex a,GVertex b);
+
+Uint32 getpixel(SDL_Surface *surface, int x, int y);
+bool checkPixel(GVertex p);
+
+vector<GVertex> Brensenham(int x,int y);
+bool checkLine(GVertex pnear, GVertex prand);
+
+GVertex nearestVertex(GVertex prand);
+void add_vertex(GVertex pnear,GVertex pnew);
+
+GVertex randConf();
+GVertex newConf();
+Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta);
 
 
-/*PSEUDO
+GNodes convertCoords();
+void turnRobot();
+void goStraight();
 
-Algorithm BuildRRT
-  Input: Initial configuration qinit, number of vertices in RRT K, incremental distance Δq)
-  Output: RRT graph G
+void getInput(){
+	SDL_Event e;
+        while(SDL_PollEvent(&e)) {
+        	switch(e.type){
+        		case SDL_QUIT:
+        			exit(1);
+        			break;
+        		case SDL_KEYDOWN:
+        		case SDL_KEYUP:
+        			switch(e.key.keysym.sym){
+        				case SDLK_BACKSPACE:
+        				case SDLK_ESCAPE:
+        					exit(1);
+        			}
+        			break;
+        		default:
+        			continue;
+        	}
+            
+        }
+}
 
-  G.init(qinit)
-  for k = 1 to K
-    qrand ← RAND_CONF()
-    qnear ← NEAREST_VERTEX(qrand, G)
-    qnew ← NEW_CONF(qnear, qrand, Δq)
-    G.add_vertex(qnew)
-    G.add_edge(qnear, qnew)
-  return G
+GVertex getRobotPosition(){
+    tf::TransformListener listener;
+    tf::StampedTransform transform;
+    GVertex pos;
 
+    try {
+        string base_footprint_frame = tf::resolve(tf_prefix, "base_footprint");
+	
+        listener.waitForTransform("/odom", base_footprint_frame, ros::Time(0), ros::Duration(10.0));
+        listener.lookupTransform("/odom", base_footprint_frame, ros::Time(0), transform);
 
-*/
-
-  /* refrence def step_from_to(p1,p2):
-    if dist(p1,p2) < EPSILON:
-        return p2
-    else:
-        theta = atan2(p2[1]-p1[1],p2[0]-p1[0])
-        return p1[0] + EPSILON*cos(theta), p1[1] + EPSILON*sin(theta)
-*/
-
-GVertex coordCovert(GVertex){
-
+        GVertex(transform.getOrigin().x(),transform.getOrigin().y());
+    }
+    catch (tf::TransformException &ex) {
+		ROS_ERROR("%s",ex.what());
+    }
+    return pos;
 }
 
 float dist(GVertex a,GVertex b){
 	return sqrt(((a.x-b.x)*(a.x-b.x))+((a.y-b.y)*(a.y-b.y)));
 }
 
-
-GVertex normalize(GVertex point){
-	return GVertex((point.x/(sqrt((point.x*point.x)+(point.y*point.y)))),(point.y/(sqrt((point.x*point.x)+(point.y*point.y)))));
-}
 
 Uint32 getpixel(SDL_Surface *surface, int x, int y){
     int bpp = surface->format->BytesPerPixel;
@@ -184,20 +192,8 @@ Uint32 getpixel(SDL_Surface *surface, int x, int y){
         break;
 
     default:
-        return 0;       /* shouldn't happen, but avoids warnings */
+        return 0;       
     }
-}
-
-GVertex nearestVertex(GVertex prand){
-	cerr << "Nearest Vertex" << endl;
-	GVertex temp=GVertex(g.vertices[0]);
-	for(int i=0;i<g.vertices.size();++i){
-		if(dist(g.vertices[i],prand)<dist(temp,prand)){
-			temp.x=g.vertices[i].x;
-			temp.y=g.vertices[i].y;
-		}
-	}
-	return temp;
 }
 
 //returns true if white
@@ -208,24 +204,6 @@ bool checkPixel(int x, int y){
 	SDL_GetRGBA(pixel,surface->format,&red,&green,&blue,&alpha);
 	fprintf(stderr, "Pixel info x: %d y: %d -> R: %d  G: %d B: %d\n",x,y,red,green,blue);
 	return (red==255 && green==255 && blue==255);
-}
-
-
-//true if line is white
-bool checkLine(GVertex pnear, GVertex prand){
-	cerr << "CheckLine" << endl;
-
-	vector<GVertex> v(Bresenham(pnear,prand));
-		for(int i=0;i<v.size();++i){
-			if(!checkPixel(v[i].x,v[i].y)){
-				return false;
-			}
-		}
-		return true;
-}
-
-bool isGoodtoStart(GVertex pnear,GVertex prand){
-	return checkLine(pnear,prand);
 }
 
 /* 	check for vertical line
@@ -328,17 +306,41 @@ cerr << "Bresenham line:" << endl;
   return v;
 }
 
-GVertex new_conf(GVertex pnear,GVertex prand,int delta){
-	cerr << "NEW Configuration" << endl;
-	if(dist(pnear,g.start) < delta){
-		cerr << "GO TO START" << endl;
-		return g.start;
-	}else if(dist(pnear,prand) < delta){
-		cerr << "Dist: " << dist(pnear,prand) << "Less Than: " << delta << endl;
-		return prand;
-	}else{
-		return GVertex(pnear.x+delta,pnear.y+delta);
+
+//true if line is white
+bool checkLine(GVertex pnear, GVertex prand){
+	cerr << "CheckLine" << endl;
+
+	vector<GVertex> v(Bresenham(pnear,prand));
+		for(int i=0;i<v.size();++i){
+			if(!checkPixel(v[i].x,v[i].y)){
+				return false;
+			}
+		}
+		return true;
+}
+
+
+//nearest vertex of prand to goal
+GVertex nearestVertex(GVertex prand){
+	cerr << "Nearest Vertex" << endl;
+	GVertex temp=GVertex(g.vertices[0]);
+	for(int i=0;i<g.vertices.size();++i){
+		if(dist(g.vertices[i],g.goal)<dist(temp,prand)){
+			temp.x=g.vertices[i].x;
+			temp.y=g.vertices[i].y;
+		}
 	}
+	return temp;
+}
+
+void add_vertex(GVertex pnear,GVertex pnew){
+	cerr << "Add Vertex" << endl;
+	SDL_Point p={pnew.x,pnew.y};
+	//SDL_Point p={pnear.x,pnear.y};
+	g.renderpoints.push_back(p);
+	g.vertices.push_back(pnew);
+	g.edges.push_back(GEdges(pnear,pnew));
 }
 
 pair<GVertex, GVertex> rand_conf(){
@@ -359,7 +361,7 @@ pair<GVertex, GVertex> rand_conf(){
 		pixel = getpixel(surface,x,y);
 		SDL_UnlockSurface(surface);
 		SDL_GetRGBA(pixel,surface->format,&red,&green,&blue,&alpha);
-		p = GVertex(nearestVertex(GVertex(x,y)));
+		//p = GVertex(nearestVertex(GVertex(x,y)));
 		if(checkLine(p,GVertex(x,y))){
 			break;
 		}
@@ -369,27 +371,32 @@ pair<GVertex, GVertex> rand_conf(){
 	}
 
 	//return nearestVertex(GVertex(x,y));
-	return make_pair(p,GVertex(x,y));
+	//return make_pair(p,GVertex(x,y));
+	return GVertex(x,y);
 }
 
 
-void add_vertex(GVertex pnear,GVertex pnew){
-	cerr << "Add Vertex" << endl;
-	SDL_Point p={pnew.x,pnew.y};
-	//SDL_Point p={pnear.x,pnear.y};
-	g.renderpoints.push_back(p);
-	g.vertices.push_back(pnew);
-	g.edges.push_back(GEdges(pnear,pnew));
+GVertex new_conf(GVertex pnear,GVertex prand,int delta){
+	cerr << "NEW Configuration" << endl;
+	if(dist(pnear,g.start) < delta){
+		cerr << "GO TO START" << endl;
+		return g.start;
+	}else if(dist(pnear,prand) < delta){
+		cerr << "Dist: " << dist(pnear,prand) << "Less Than: " << delta << endl;
+		return prand;
+	}else{
+		return GVertex(pnear.x+delta,pnear.y+delta);
+	}
 }
 
 Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta){
 	GVertex prand,pnear,pnew;
 	g=Graph(qinit,kvertices,delta);
-	for(int i = 1; i <= g.maxvertices; ++i){
+	//for(int i = 1; i <= g.maxvertices; ++i){
 		cerr << "Iteration: " << i << endl;
-		pair<GVertex, GVertex> p=rand_conf();
-		//pnear=nearestVertex(prand);
-		pnew=new_conf(p.first,p.second,g.delta);
+		GVertex prand=rand_conf();
+		pnear=nearestVertex(prand);
+		pnew=new_conf(g.delta);
 		add_vertex(p.first,pnew);
 
 
@@ -438,51 +445,9 @@ Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta){
     	getInput();
     	SDL_Delay(500);
 
-	}
+	//}
 	return g;
 }
-
-void getInput(){
-	SDL_Event e;
-        while(SDL_PollEvent(&e)) {
-        	switch(e.type){
-        		case SDL_QUIT:
-        			exit(1);
-        			break;
-        		case SDL_KEYDOWN:
-        		case SDL_KEYUP:
-        			switch(e.key.keysym.sym){
-        				case SDLK_BACKSPACE:
-        				case SDLK_ESCAPE:
-        					exit(1);
-        			}
-        			break;
-        		default:
-        			continue;
-        	}
-            
-        }
-}
-
-GVertex getRobotPosition(){
-    tf::TransformListener listener;
-    tf::StampedTransform transform;
-    GVertex pos;
-
-    try {
-        string base_footprint_frame = tf::resolve(tf_prefix, "base_footprint");
-	
-        listener.waitForTransform("/odom", base_footprint_frame, ros::Time(0), ros::Duration(10.0));
-        listener.lookupTransform("/odom", base_footprint_frame, ros::Time(0), transform);
-
-        GVertex(transform.getOrigin().x(),transform.getOrigin().y());
-    }
-    catch (tf::TransformException &ex) {
-		ROS_ERROR("%s",ex.what());
-    }
-    return pos;
-}
-
 
 int main(int argc, char **argv){
 
