@@ -13,6 +13,7 @@
 #include <sstream>
 #include <cmath>
 #include <ctime>
+#include <random>
 
 using namespace std;
 
@@ -26,6 +27,15 @@ SDL_PixelFormat *fmt=NULL;
 Uint32 temp, pixel;
 Uint8 red, green, blue, alpha;
 SDL_Color color;
+
+
+auto const seed = std::random_device()();          
+
+std::mt19937 rng;                  
+
+void initialize(){
+  rng.seed(seed);
+}
 
 
 struct GVertex {
@@ -56,12 +66,9 @@ struct GNodes{
 	GNodes(GVertex v){
 		vertex.x=v.x;
 		vertex.y=v.y;
-		parent=NULL;
 
 	}
-	GNodes(GNodes *newParent,GVertex point){
-		parent=new GNodes;
-		parent=newParent;
+	GNodes(GVertex point){
 		vertex.x=point.x;
 		vertex.y=point.y;
 	}
@@ -81,7 +88,7 @@ struct Graph{
 		goal.y=init.second.y;
 		vertices.push_back(init.first);
 		delta = newdelta;
-		root=GNodes(init.second);
+		root=GNodes(init.first);
 		//".c" << create(line, Point(800,800), Point(0,0)) -Tk::fill("black");
 	}
 	//int delta=20;
@@ -95,7 +102,7 @@ struct Graph{
 	vector<SDL_Point> renderpoints;
 	vector<GEdges> edges;
 	vector<GVertex> vertices;
-	GNodes root;
+	GNodes *root;
 }g;
 
 void getInput();
@@ -115,10 +122,23 @@ GVertex randConf();
 GVertex newConf();
 Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta);
 
-
 GNodes convertCoords();
 void turnRobot();
 void goStraight();
+
+void removeChild();
+void addChild();
+
+
+void removeChild(GNodes *parent){
+	*parent.children.pop_back();
+}
+
+void addChild(GNodes *parent,GNodes *child){
+	*parent.children.push_back(&child); 
+}
+
+
 
 void getInput(){
 	SDL_Event e;
@@ -168,7 +188,7 @@ float dist(GVertex a,GVertex b){
 
 Uint32 getpixel(SDL_Surface *surface, int x, int y){
     int bpp = surface->format->BytesPerPixel;
-    /* Here p is the address to the pixel we want to retrieve */
+
     Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
 
     switch(bpp) {
@@ -322,28 +342,36 @@ bool checkLine(GVertex pnear, GVertex prand){
 
 
 //nearest vertex of prand to goal
-GVertex nearestVertex(GVertex prand){
+/*GVertex nearestVertex(GVertex prand){
 	cerr << "Nearest Vertex" << endl;
 	GVertex temp=GVertex(g.vertices[0]);
 	for(int i=0;i<g.vertices.size();++i){
-		if(dist(g.vertices[i],g.goal)<dist(temp,prand)){
+		if(dist(prand,g.goal)<dist(temp,prand)){
 			temp.x=g.vertices[i].x;
 			temp.y=g.vertices[i].y;
 		}
 	}
 	return temp;
+}*/
+
+bool nearestVertex(GVertex prand,GVertex nearest){
+	cerr << "Nearest Vertex" << endl;
+	if(dist(prand,g.goal)<dist(nearest,prand)){
+		return false;
+	}
+	return true;
 }
 
 void add_vertex(GVertex pnear,GVertex pnew){
 	cerr << "Add Vertex" << endl;
-	SDL_Point p={pnew.x,pnew.y};
+	//SDL_Point p={pnew.x,pnew.y};
 	//SDL_Point p={pnear.x,pnear.y};
-	g.renderpoints.push_back(p);
+	//g.renderpoints.push_back(p);
 	g.vertices.push_back(pnew);
 	g.edges.push_back(GEdges(pnear,pnew));
 }
 
-pair<GVertex, GVertex> rand_conf(){
+GVertex rand_conf(){
 	cerr << "Random Configuration" << endl;
 
 	int x,y;
@@ -353,22 +381,25 @@ pair<GVertex, GVertex> rand_conf(){
 
 	robpos=getRobotPosition();
 
-	while(true){
+	std::uniform_int_distribution<uint32_t> distx;
+	std::uniform_int_distribution<uint32_t> disty;
+
+	do{
 		//rand()%(max-min + 1) + min;
-		x = rand() % (arraywidth) + 1;
-		y = rand() % (arrayheight) + 1;
+		distx = uniform_int_distribution<uint32_t>(convertCoords(robpos).x-20,convertCoords(robpos).x+20);
+		disty = uniform_int_distribution<uint32_t>(convertCoords(robpos).y-20,convertCoords(robpos).y+20);
 		SDL_LockSurface(surface);
 		pixel = getpixel(surface,x,y);
 		SDL_UnlockSurface(surface);
 		SDL_GetRGBA(pixel,surface->format,&red,&green,&blue,&alpha);
 		//p = GVertex(nearestVertex(GVertex(x,y)));
-		if(checkLine(p,GVertex(x,y))){
+		/*if(checkLine(p,GVertex(x,y))){
 			break;
-		}
+		}*/
 
 		//cerr << "Pixel Color -> R: "<< (int)red << " G: " << (int)green << " B: " << (int)blue <<  " A: " << (int)alpha << endl;
 		fprintf(stderr, "Pixel %d x: %d y: %d Color -> R: %d G: %d B: %d A: %d \n",pixel,x,y,red,green,blue,alpha);
-	}
+	}while(red!=0&&green!=0&&blue!=0);
 
 	//return nearestVertex(GVertex(x,y));
 	//return make_pair(p,GVertex(x,y));
