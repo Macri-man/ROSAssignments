@@ -356,10 +356,34 @@ bool checkLine(GVertex pnear, GVertex prand){
 
 bool nearestVertex(GVertex prand,GVertex nearest){
 	cerr << "Nearest Vertex" << endl;
-	if(dist(prand,g.goal)<dist(nearest,prand)){
-		return false;
+	if(dist(prand,g.goal)<=dist(nearest,g.goal)){
+		return true;
 	}
-	return true;
+	return false;
+}
+
+GVertex getNearestVertex(vector<GVertex> prand){
+	GVertex temp=GVertex(prand.back());
+	while(!prand.empty()){
+		SDL_RenderClear(renderer);
+    	SDL_RenderCopy(renderer, texture, NULL, NULL);
+    	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    	for(int e=0;e<prand.size();++e){
+       		if(SDL_RenderDrawLine(renderer,g.vertices.back().x,g.vertices.back().y,prand[e].x,prand[e].y)!=0){
+        		fprintf(stderr, "Error: Unable to render lines: %s\n", SDL_GetError());
+        		exit(1);
+    		}
+    	}
+		if(nearestVertex(prand.back(),temp)){
+			temp.x=prand.back().x;
+			temp.y=prand.back().y;
+			prand.pop_back();
+		}else{
+			prand.pop_back();
+		}
+		SDL_RenderPresent(renderer);
+	}
+	return temp;
 }
 
 void add_vertex(GVertex pnear,GVertex pnew){
@@ -371,53 +395,53 @@ void add_vertex(GVertex pnear,GVertex pnew){
 	g.edges.push_back(GEdges(pnear,pnew));
 }
 
-GVertex rand_conf(){
+vector<GVertex> rand_conf(){
 	cerr << "Random Configuration" << endl;
 
-	int x,y;
-	GVertex p;
+	//int x,y;
+	//GVertex p;
 
 	//int maxx=robpos.x+g.delta,minx=robpos.x-delta;
 
-	robpos=getRobotPosition();
+	//robpos=getRobotPosition();
+
+	vector<GVertex> v;
 
 	std::uniform_int_distribution<uint32_t> distx;
 	std::uniform_int_distribution<uint32_t> disty;
 
-	do{
+	//do{
 		//rand()%(max-min + 1) + min;
-		distx = uniform_int_distribution<uint32_t>(convertCoords(robpos).x-20,convertCoords(robpos).x+20);
-		disty = uniform_int_distribution<uint32_t>(convertCoords(robpos).y-20,convertCoords(robpos).y+20);
-		SDL_LockSurface(surface);
-		pixel = getpixel(surface,x,y);
-		SDL_UnlockSurface(surface);
-		SDL_GetRGBA(pixel,surface->format,&red,&green,&blue,&alpha);
-		//p = GVertex(nearestVertex(GVertex(x,y)));
-		/*if(checkLine(p,GVertex(x,y))){
-			break;
-		}*/
+		//distx = uniform_int_distribution<uint32_t>(convertCoords(robpos).x-20,convertCoords(robpos).x+20);
+		//disty = uniform_int_distribution<uint32_t>(convertCoords(robpos).y-20,convertCoords(robpos).y+20);
+	for(int i=0;i<30;++i){
+		distx = uniform_int_distribution<uint32_t>(g.vertices.back().x-20,g.vertices.back().x-+20);
+		disty = uniform_int_distribution<uint32_t>(g.vertices.back().y-20,g.vertices.back().y-+20);
+		do{
+			SDL_LockSurface(surface);
+			pixel = getpixel(surface,distx,disty);
+			SDL_UnlockSurface(surface);
+			SDL_GetRGBA(pixel,surface->format,&red,&green,&blue,&alpha);
+			if(checkLine(g.vertices.back(),GVertex(x,y))){
+				break;
+			}
+		}while(red!=0&&green!=0&&blue!=0);
 
+		v.push_back(GVertex(distx,disty));
+	}
 		//cerr << "Pixel Color -> R: "<< (int)red << " G: " << (int)green << " B: " << (int)blue <<  " A: " << (int)alpha << endl;
-		fprintf(stderr, "Pixel %d x: %d y: %d Color -> R: %d G: %d B: %d A: %d \n",pixel,x,y,red,green,blue,alpha);
-	}while(red!=0&&green!=0&&blue!=0);
+		//fprintf(stderr, "Pixel %d x: %d y: %d Color -> R: %d G: %d B: %d A: %d \n",pixel,x,y,red,green,blue,alpha);
+	//}//while(red!=0&&green!=0&&blue!=0);
 
 	//return nearestVertex(GVertex(x,y));
 	//return make_pair(p,GVertex(x,y));
-	return GVertex(x,y);
+	//return GVertex(distx,disty);
+	return v;
 }
 
-
-GVertex new_conf(GVertex pnear,GVertex prand,int delta){
+GVertex new_conf(GVertex pnear,GVertex prand){
 	cerr << "NEW Configuration" << endl;
-	if(dist(pnear,g.start) < delta){
-		cerr << "GO TO START" << endl;
-		return g.start;
-	}else if(dist(pnear,prand) < delta){
-		cerr << "Dist: " << dist(pnear,prand) << "Less Than: " << delta << endl;
-		return prand;
-	}else{
-		return GVertex(pnear.x+delta,pnear.y+delta);
-	}
+	
 }
 
 Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta){
@@ -425,10 +449,10 @@ Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta){
 	g=Graph(qinit,kvertices,delta);
 	//for(int i = 1; i <= g.maxvertices; ++i){
 		cerr << "Iteration: " << i << endl;
-		GVertex prand=rand_conf();
-		pnear=nearestVertex(prand);
-		pnew=new_conf(g.delta);
-		add_vertex(p.first,pnew);
+		vector<GVertex> prand=rand_conf();
+		pnew=getNearestVertex(prand);
+		//pnew=new_conf();
+		add_vertex(g.vertices.back(),pnew);
 
 
 		//SDL_RenderPresent(renderer);
@@ -455,11 +479,11 @@ Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta){
 
     	//SDL_RenderSetScale( renderer, 3, 3 );
 
-    	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 0);
+    	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
     	SDL_RenderDrawPoint(renderer,g.goal.x,g.goal.y);
-    	SDL_SetRenderDrawColor(renderer, 0, 255, 0, 0);
+    	SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
     	SDL_RenderDrawPoint(renderer,g.start.x,g.start.y);
-    	SDL_SetRenderDrawColor(renderer, 0, 0, 255, 0);
+    	SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
     	//SDL_RenderSetScale( renderer, 1, 1 );
 
     	SDL_RenderPresent(renderer);
@@ -541,7 +565,7 @@ int main(int argc, char **argv){
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
    	//SDL_RenderFillRect( renderer, &r );
     //Render the rect to the screen
