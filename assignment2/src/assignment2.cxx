@@ -14,6 +14,8 @@
 #include <cmath>
 #include <random>
 
+#include <unistd.h>
+
 using namespace std;
 
 string tf_prefix;
@@ -532,7 +534,7 @@ void turnRobot(){
 
 int main(int argc, char **argv){
 
-	ros::init(argc, argv, "stage");
+	ros::init(argc, argv, "assignment2");
 	ros::NodeHandle nh_;
 	ros::Publisher cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
 	nh_.getParam("tf_prefix", tf_prefix);
@@ -561,15 +563,20 @@ int main(int argc, char **argv){
        	exit(1);
     }
 
-    string filepath = "/home/csguest/catkin_ros/src/Stage/bitmaps/autolab.png";
+    char buff[255];
+    getcwd(buff,255);
+    cout << buff << endl;
+    //string filepath = "/home/csguest/catkin_ros/src/assignment2/Stage/bitmaps/autolab.png";
+    string filepath = "/src/assignment2/Stage/bitmaps/autolab.png";
+    string fullpath=string(buff).append(filepath);
 
-    surface=IMG_Load(filepath.c_str());
+    surface=IMG_Load(fullpath.c_str());
     //surface = SDL_LoadBMP(../Stage/bitmaps/autolab.png);
     //surface = CreateRGBSurfaceFrom(,width,height,32,0,0,0,0);
 
     if(!surface){
     	fprintf(stderr, "Create Surface failed: %s\n", SDL_GetError());
-        exit(1);
+        exit(-1);
     }
 
 

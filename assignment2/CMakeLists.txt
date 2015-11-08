@@ -136,14 +136,14 @@ link_directories(/usr/local/lib)
 
 ## Declare a C++ executable
  #add_executable(assignment2_node src/cpptkbase.h src/cpptk.h src/stage.cxx src/cpptkbase.cc src/cpptk.cc)
-add_executable(assignment2_node src/assignment2.cxx)
+add_executable(assignment2 src/assignment2.cxx)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
- add_dependencies(assignment2_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ add_dependencies(assignment2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(
- 	assignment2_node
+ 	assignment2
    ${catkin_LIBRARIES}
    ${SDL2_LIBRARIES} 
    ${SDL2IMAGE_LIBRARIES}

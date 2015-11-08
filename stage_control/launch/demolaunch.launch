@@ -5,14 +5,7 @@
 	type="stageros"
 	name="stage_app"
 	respawn="false"
-	args="/home/csguest/catkin_ros/src/Stage/willow-erratic.world"
-/>
-
-<node 
-	pkg="assigment2"
-	type="stage_mover"
-	name="rrt visual"
-	respawn="false"
+	args="/home/csguest/catkin_ros/src/assignment2/Stage/willow-erratic.world"
 />
 
 <node 
@@ -20,5 +13,6 @@
 	type="stage_mover"
 	name="stage_mover_demo"
 	respawn="false"
+	launch-prefix="gnome-terminal -e"
 />
 </launch>
