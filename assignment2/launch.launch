@@ -1,0 +1,19 @@
+<launch>
+
+<node 
+	pkg="stage_ros"
+	type="stageros"
+	name="stage_app"
+	respawn="false"
+	args="$(find assignment2)/Stage/willow-erratic.world"
+/>
+
+<node 
+	pkg="assignment2"
+	type="assignment2"
+	name="assignment2_visualizer"
+	respawn="false"
+	launch-prefix="gnome-terminal -e"
+/>
+
+</launch>
