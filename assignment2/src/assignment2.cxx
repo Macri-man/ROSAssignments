@@ -34,6 +34,9 @@ geometry_msgs::Twist base_cmd;
 std::random_device seeder;
 std::mt19937 engine(seeder());
 
+int arraywidth=820;
+int arrayheight=700;
+
 
 struct GVertex {
 	int x;
@@ -58,6 +61,8 @@ struct GEdges{
 	GVertex two;
 };
 
+GVertex convertCoords(GVertex point);
+
 struct Graph{
 	Graph(){}
 	Graph(pair<GVertex, GVertex> init, int k,int newdelta){
@@ -67,6 +72,7 @@ struct Graph{
 		goal.x=init.second.x;
 		goal.y=init.second.y;
 		vertices.push_back(init.first);
+		robotVertices.push_back(convertCoords(init.first));
 		delta = newdelta;
 		//".c" << create(line, Point(800,800), Point(0,0)) -Tk::fill("black");
 	}
@@ -81,6 +87,7 @@ struct Graph{
 	vector<SDL_Point> renderpoints;
 	vector<GEdges> edges;
 	vector<GVertex> vertices;
+	vector<GVertex> robotVertices;
 }g;
 
 struct Robot{
@@ -89,10 +96,10 @@ struct Robot{
 		h=h;
 		x=posx;
 		y=posy;
-
 	}
 	double h;
 	int x, y;
+	GVertex g;
 }robot;
 
 void getInput();
@@ -109,8 +116,8 @@ GVertex nearestVertex(GVertex prand);
 void add_vertex(GVertex pnear,GVertex pnew);
 
 GVertex randConf();
-GVertex newConf();
-Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta);
+bool newConf(vector<GVertex> prand);
+bool RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta);
 
 void turnRobot();
 void moveTo();
@@ -151,6 +158,7 @@ void getRobotPosition(){
     	listener.lookupTransform("/odom", base_footprint_frame, ros::Time(0), transform);
 
        	robot=Robot(tf::getYaw(transform.getRotation()),transform.getOrigin().x(),transform.getOrigin().y());
+       	cerr << "Robot:" << "Heading: " << robot.h << "Robot pos x: " << robot.x << "Robot pos y: " << robot.y  << endl;
     }
     catch (tf::TransformException &ex) {
 		ROS_ERROR("%s",ex.what());
@@ -331,7 +339,6 @@ bool checkLine(GVertex pnear, GVertex prand){
 }*/
 
 bool nearestVertex(GVertex prand,GVertex nearest){
-	cerr << "Nearest Vertex" << endl;
 	if(dist(prand,g.goal)<=dist(nearest,g.goal)){
 		return true;
 	}
@@ -339,15 +346,16 @@ bool nearestVertex(GVertex prand,GVertex nearest){
 }
 
 GVertex getNearestVertex(vector<GVertex> prand){
+	cerr << "Nearest Vertex" << endl;
 	GVertex temp=GVertex(prand.back());
 	while(!prand.empty()){
 		draw();
-    	for(int e=0;e<prand.size();++e){
+    	/*for(int e=0;e<prand.size();++e){
        		if(SDL_RenderDrawLine(renderer,g.vertices.back().x,g.vertices.back().y,prand[e].x,prand[e].y)!=0){
         		fprintf(stderr, "Error: Unable to render lines: %s\n", SDL_GetError());
         		exit(1);
     		}
-    	}
+    	}*/
 		if(nearestVertex(prand.back(),temp)){
 			temp.x=prand.back().x;
 			temp.y=prand.back().y;
@@ -359,11 +367,16 @@ GVertex getNearestVertex(vector<GVertex> prand){
 	return temp;
 }
 
+GVertex convertCoords(GVertex point){
+	return GVertex(point.x-((1/2)*arraywidth),point.y+((1/2)*arrayheight));
+}
+
 void add_vertex(GVertex pnear,GVertex pnew){
 	cerr << "Add Vertex" << endl;
 	//SDL_Point p={pnew.x,pnew.y};
 	//SDL_Point p={pnear.x,pnear.y};
 	//g.renderpoints.push_back(p);
+	g.robotVertices.push_back(convertCoords(pnew));
 	g.vertices.push_back(pnew);
 	g.edges.push_back(GEdges(pnear,pnew));
 }
@@ -385,11 +398,13 @@ vector<GVertex> rand_conf(){
 
 	//do{
 		//rand()%(max-min + 1) + min;
-	uniform_int_distribution<int> distx(robot.x-g.delta,robot.x+g.delta);
-	uniform_int_distribution<int> disty(robot.y-g.delta,robot.y+g.delta);
+	//uniform_int_distribution<int> distx(robot.x-g.delta,robot.x+g.delta);
+	//uniform_int_distribution<int> disty(robot.y-g.delta,robot.y+g.delta);
+	uniform_int_distribution<int> distx(0,arraywidth);
+	uniform_int_distribution<int> disty(0,arrayheight);
 	//uniform_int_distribution<int> distx(g.vertices.back().x-g.delta,g.vertices.back().x+g.delta);
 	//uniform_int_distribution<int> disty(g.vertices.back().y-g.delta,g.vertices.back().y+g.delta);
-	for(int i=0;i<30;++i){
+	for(int i=0;i<g.maxvertices;++i){
 		do{
 			x = distx(engine);
 			y = disty(engine);
@@ -397,9 +412,10 @@ vector<GVertex> rand_conf(){
 			pixel = getpixel(surface,x,y);
 			SDL_UnlockSurface(surface);
 			SDL_GetRGBA(pixel,surface->format,&red,&green,&blue,&alpha);
-			if(checkLine(g.vertices.back(),GVertex(x,y))){
+			/*if(checkLine(g.vertices.back(),GVertex(x,y))){
 				break;
-			}
+			}*/
+			fprintf(stderr, "Pixel %d x: %d y: %d Color -> R: %d G: %d B: %d A: %d \n",pixel,x,y,red,green,blue,alpha);
 		}while(red!=0&&green!=0&&blue!=0);
 
 		v.push_back(GVertex(x,y));
@@ -414,6 +430,26 @@ vector<GVertex> rand_conf(){
 	return v;
 }
 
+
+bool newConf(vector<GVertex> prand){
+	cerr << "NEW Configuration" << endl;
+	for(int i=0;i<prand.size();i++){
+		if(!checkLine(g.vertices.back(),prand.[i])){
+			prand.erase(prand.begin()+i);
+			draw();
+		}
+	}
+	if(prand.empty()){
+		return false;
+	}else{
+		return true;
+	}
+}
+
+/*if(checkLine(g.vertices.back(),GVertex(x,y))){
+				break;
+			}*/
+
 GVertex nearGoal(GVertex pnew){
 	cerr << "NEW Configuration" << endl;
 	if(dist(pnew,g.goal)<5 && checkLine(pnew,g.goal)){
@@ -422,7 +458,8 @@ GVertex nearGoal(GVertex pnew){
 	return pnew;
 }
 
-void draw(){
+void draw(vector<GVertex> prand){
+	cerr << "DRAW" << endl;
 	SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
@@ -436,15 +473,28 @@ void draw(){
        		exit(1);
     	}
     }
+
+    SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+    if(!prand.empty()){
+    	for(int k=0;k<prand.size();++k){
+       		if(SDL_RenderDrawLine(renderer,g.vertices.back().x,g.vertices.back().y,prand[k].x,prand[k].y)!=0){
+       			fprintf(stderr, "Error: Unable to render lines: %s\n", SDL_GetError());
+       			exit(1);
+    		}
+    	}
+    }
+
     SDL_RenderPresent(renderer);
+    SDL_Delay(500);
 }
 
-void RRT(){
+bool RRT(){
 	GVertex pnear,pnew;
 	
 	//for(int i = 1; i <= g.maxvertices; ++i){
 		//cerr << "Iteration: " << i << endl;
-		vector<GVertex> prand=rand_conf();
+	vector<GVertex> prand=rand_conf();
+	if(new_conf(prand)){
 		pnew=getNearestVertex(prand);
 		pnew=nearGoal(pnew);
 		add_vertex(g.vertices.back(),pnew);
@@ -492,6 +542,10 @@ void RRT(){
     		//SDL_RenderPresent(renderer);
     	}*/
     	draw();
+    	return true;
+    }else{
+    	return false;
+    }
     	getInput();
     	//SDL_Delay(500);
 
@@ -504,7 +558,7 @@ bool near(GVertex o, GVertex t){
 }
 
 double bearing(){
-	return atan2(g.vertices.back().y-robot.y,g.vertices.back().x-robot.x);
+	return atan2(g.robotVertices.back().y-robot.y,g.robotVertices.back().x-robot.x);
 }
 
 bool isFacing(){
@@ -513,8 +567,9 @@ bool isFacing(){
 }
 
 void moveTo(){
-	while(!near(GVertex(robot.x,robot.y),g.vertices.back())){
+	while(!near(GVertex(robot.x,robot.y),g.robotVertices.back())){
 		base_cmd.linear.x=.25;
+		draw();
 	}
 }
 
@@ -529,6 +584,7 @@ void turnRobot(){
 		}else{
 			base_cmd.angular.z=0.25;
 		}
+		draw();
 	}
 }	
 
@@ -541,8 +597,7 @@ int main(int argc, char **argv){
 	string input;
 	int state;
 
-	int arraywidth=820;
-	int arrayheight=700;
+	
 	int x,y;
 
 	if(SDL_Init(SDL_INIT_EVERYTHING)!=0){
@@ -620,23 +675,25 @@ int main(int argc, char **argv){
 
 	GVertex goal=GVertex(x,y);
 
+	robot.g=convertCoords(goal);
+
 	ros::Rate loop_rate(10);
 	pair<GVertex,GVertex> ginit = make_pair(start,goal);
 
 	//RRT(ginit,10);
 
-	g=Graph(ginit,30,10);
+	g=Graph(ginit,40,10);
 
 	while(ros::ok()){
 		
 		cmd_vel_pub_.publish(base_cmd);
 
 		RRT();
-		turnRobot();
-		moveTo();
-		if(reachGoal()){
-			break;
-		}
+		//turnRobot();
+		//moveTo();
+		//if(reachGoal()){
+		//	break;
+		//}
 		getInput();
 
 		ros::spinOnce();
