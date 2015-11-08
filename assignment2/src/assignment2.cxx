@@ -383,10 +383,10 @@ vector<GVertex> rand_conf(){
 
 	//do{
 		//rand()%(max-min + 1) + min;
-		//distx = uniform_int_distribution<uint32_t>(convertCoords(robpos).x-20,convertCoords(robpos).x+20);
-		//disty = uniform_int_distribution<uint32_t>(convertCoords(robpos).y-20,convertCoords(robpos).y+20);
-	uniform_int_distribution<int> distx(g.vertices.back().x-g.delta,g.vertices.back().x+g.delta);
-	uniform_int_distribution<int> disty(g.vertices.back().y-g.delta,g.vertices.back().y+g.delta);
+	uniform_int_distribution<int> distx(robot.x-g.delta,robot.x+g.delta);
+	uniform_int_distribution<int> disty(robot.y-g.delta,robot.y+g.delta);
+	//uniform_int_distribution<int> distx(g.vertices.back().x-g.delta,g.vertices.back().x+g.delta);
+	//uniform_int_distribution<int> disty(g.vertices.back().y-g.delta,g.vertices.back().y+g.delta);
 	for(int i=0;i<30;++i){
 		do{
 			x = distx(engine);
