@@ -9,10 +9,16 @@
 />
 
 <node 
+	pkg="assigment2"
+	type="stage_mover"
+	name="rrt visual"
+	respawn="false"
+/>
+
+<node 
 	pkg="stage_control"
 	type="stage_mover"
 	name="stage_mover_demo"
 	respawn="false"
-	launch-prefix="gnome-terminal -e"
 />
 </launch>

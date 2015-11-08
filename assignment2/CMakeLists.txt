@@ -113,7 +113,7 @@ catkin_package(
 
 #set (CMAKE_CXX_FLAGS "-ltcl -ltk -pthread")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/local/include/ -L/usr/local/lib -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
@@ -136,7 +136,7 @@ link_directories(/usr/local/lib)
 
 ## Declare a C++ executable
  #add_executable(assignment2_node src/cpptkbase.h src/cpptk.h src/stage.cxx src/cpptkbase.cc src/cpptk.cc)
-add_executable(assignment2_node src/stage.cxx)
+add_executable(assignment2_node src/assignment2.cxx)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
  add_dependencies(assignment2_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

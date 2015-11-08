@@ -12,7 +12,6 @@
 #include <geometry_msgs/Twist.h>
 #include <sstream>
 #include <cmath>
-#include <ctime>
 #include <random>
 
 using namespace std;
@@ -28,14 +27,10 @@ Uint32 temp, pixel;
 Uint8 red, green, blue, alpha;
 SDL_Color color;
 
+geometry_msgs::Twist base_cmd;
 
-auto const seed = std::random_device()();          
-
-std::mt19937 rng;                  
-
-void initialize(){
-  rng.seed(seed);
-}
+std::random_device seeder;
+std::mt19937 engine(seeder());
 
 
 struct GVertex {
@@ -61,23 +56,6 @@ struct GEdges{
 	GVertex two;
 };
 
-struct GNodes{
-	GNodes(){}
-	GNodes(GVertex v){
-		vertex.x=v.x;
-		vertex.y=v.y;
-
-	}
-	GNodes(GVertex point){
-		vertex.x=point.x;
-		vertex.y=point.y;
-	}
-
-	GNodes *parent;
-	vector<GNodes> children;
-	GVertex vertex;
-};
-
 struct Graph{
 	Graph(){}
 	Graph(pair<GVertex, GVertex> init, int k,int newdelta){
@@ -88,7 +66,6 @@ struct Graph{
 		goal.y=init.second.y;
 		vertices.push_back(init.first);
 		delta = newdelta;
-		root=GNodes(init.first);
 		//".c" << create(line, Point(800,800), Point(0,0)) -Tk::fill("black");
 	}
 	//int delta=20;
@@ -102,8 +79,19 @@ struct Graph{
 	vector<SDL_Point> renderpoints;
 	vector<GEdges> edges;
 	vector<GVertex> vertices;
-	GNodes *root;
 }g;
+
+struct Robot{
+	Robot(){}
+	Robot(double h,int posx,int posy){
+		h=h;
+		x=posx;
+		y=posy;
+
+	}
+	double h;
+	int x, y;
+}robot;
 
 void getInput();
 void getRobotPosition();
@@ -122,22 +110,10 @@ GVertex randConf();
 GVertex newConf();
 Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta);
 
-GNodes convertCoords();
 void turnRobot();
-void goStraight();
+void moveTo();
 
-void removeChild();
-void addChild();
-
-
-void removeChild(GNodes *parent){
-	*parent.children.pop_back();
-}
-
-void addChild(GNodes *parent,GNodes *child){
-	*parent.children.push_back(&child); 
-}
-
+void draw();
 
 
 void getInput(){
@@ -162,23 +138,21 @@ void getInput(){
         }
 }
 
-GVertex getRobotPosition(){
+void getRobotPosition(){
     tf::TransformListener listener;
     tf::StampedTransform transform;
-    GVertex pos;
 
     try {
         string base_footprint_frame = tf::resolve(tf_prefix, "base_footprint");
 	
         listener.waitForTransform("/odom", base_footprint_frame, ros::Time(0), ros::Duration(10.0));
-        listener.lookupTransform("/odom", base_footprint_frame, ros::Time(0), transform);
+    	listener.lookupTransform("/odom", base_footprint_frame, ros::Time(0), transform);
 
-        GVertex(transform.getOrigin().x(),transform.getOrigin().y());
+       	robot=Robot(tf::getYaw(transform.getRotation()),transform.getOrigin().x(),transform.getOrigin().y());
     }
     catch (tf::TransformException &ex) {
 		ROS_ERROR("%s",ex.what());
     }
-    return pos;
 }
 
 float dist(GVertex a,GVertex b){
@@ -365,9 +339,7 @@ bool nearestVertex(GVertex prand,GVertex nearest){
 GVertex getNearestVertex(vector<GVertex> prand){
 	GVertex temp=GVertex(prand.back());
 	while(!prand.empty()){
-		SDL_RenderClear(renderer);
-    	SDL_RenderCopy(renderer, texture, NULL, NULL);
-    	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		draw();
     	for(int e=0;e<prand.size();++e){
        		if(SDL_RenderDrawLine(renderer,g.vertices.back().x,g.vertices.back().y,prand[e].x,prand[e].y)!=0){
         		fprintf(stderr, "Error: Unable to render lines: %s\n", SDL_GetError());
@@ -381,7 +353,6 @@ GVertex getNearestVertex(vector<GVertex> prand){
 		}else{
 			prand.pop_back();
 		}
-		SDL_RenderPresent(renderer);
 	}
 	return temp;
 }
@@ -398,7 +369,7 @@ void add_vertex(GVertex pnear,GVertex pnew){
 vector<GVertex> rand_conf(){
 	cerr << "Random Configuration" << endl;
 
-	//int x,y;
+	int x,y;
 	//GVertex p;
 
 	//int maxx=robpos.x+g.delta,minx=robpos.x-delta;
@@ -407,19 +378,21 @@ vector<GVertex> rand_conf(){
 
 	vector<GVertex> v;
 
-	std::uniform_int_distribution<uint32_t> distx;
-	std::uniform_int_distribution<uint32_t> disty;
+	//std::uniform_int_distribution<int> distx;
+	//std::uniform_int_distribution<int> disty;
 
 	//do{
 		//rand()%(max-min + 1) + min;
 		//distx = uniform_int_distribution<uint32_t>(convertCoords(robpos).x-20,convertCoords(robpos).x+20);
 		//disty = uniform_int_distribution<uint32_t>(convertCoords(robpos).y-20,convertCoords(robpos).y+20);
+	uniform_int_distribution<int> distx(g.vertices.back().x-g.delta,g.vertices.back().x+g.delta);
+	uniform_int_distribution<int> disty(g.vertices.back().y-g.delta,g.vertices.back().y+g.delta);
 	for(int i=0;i<30;++i){
-		distx = uniform_int_distribution<uint32_t>(g.vertices.back().x-20,g.vertices.back().x-+20);
-		disty = uniform_int_distribution<uint32_t>(g.vertices.back().y-20,g.vertices.back().y-+20);
 		do{
+			x = distx(engine);
+			y = disty(engine);
 			SDL_LockSurface(surface);
-			pixel = getpixel(surface,distx,disty);
+			pixel = getpixel(surface,x,y);
 			SDL_UnlockSurface(surface);
 			SDL_GetRGBA(pixel,surface->format,&red,&green,&blue,&alpha);
 			if(checkLine(g.vertices.back(),GVertex(x,y))){
@@ -427,7 +400,7 @@ vector<GVertex> rand_conf(){
 			}
 		}while(red!=0&&green!=0&&blue!=0);
 
-		v.push_back(GVertex(distx,disty));
+		v.push_back(GVertex(x,y));
 	}
 		//cerr << "Pixel Color -> R: "<< (int)red << " G: " << (int)green << " B: " << (int)blue <<  " A: " << (int)alpha << endl;
 		//fprintf(stderr, "Pixel %d x: %d y: %d Color -> R: %d G: %d B: %d A: %d \n",pixel,x,y,red,green,blue,alpha);
@@ -439,70 +412,123 @@ vector<GVertex> rand_conf(){
 	return v;
 }
 
-GVertex new_conf(GVertex pnear,GVertex prand){
+GVertex nearGoal(GVertex pnew){
 	cerr << "NEW Configuration" << endl;
-	
+	if(dist(pnew,g.goal)<5 && checkLine(pnew,g.goal)){
+		return g.goal;
+	}
+	return pnew;
 }
 
-Graph RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta){
-	GVertex prand,pnear,pnew;
-	g=Graph(qinit,kvertices,delta);
+void draw(){
+	SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    SDL_RenderDrawPoint(renderer,g.goal.x,g.goal.y);
+    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    SDL_RenderDrawPoint(renderer,g.start.x,g.start.y);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+    for(int e=0;e<g.edges.size();++e){
+       	if(SDL_RenderDrawLine(renderer,g.edges[e].one.x,g.edges[e].one.y,g.edges[e].two.x,g.edges[e].two.y)!=0){
+       		fprintf(stderr, "Error: Unable to render lines: %s\n", SDL_GetError());
+       		exit(1);
+    	}
+    }
+    SDL_RenderPresent(renderer);
+}
+
+void RRT(){
+	GVertex pnear,pnew;
+	
 	//for(int i = 1; i <= g.maxvertices; ++i){
-		cerr << "Iteration: " << i << endl;
+		//cerr << "Iteration: " << i << endl;
 		vector<GVertex> prand=rand_conf();
 		pnew=getNearestVertex(prand);
-		//pnew=new_conf();
+		pnew=nearGoal(pnew);
 		add_vertex(g.vertices.back(),pnew);
 
 
 		//SDL_RenderPresent(renderer);
 		//cerr << "List of points: " << i << endl;
-		cerr << "NEW point: " << i << endl;
-		cerr << "X: " << g.vertices[g.vertices.size()-1].x << " Y: " << g.vertices[g.vertices.size()-1].y << endl;
+		cerr << "NEW point: " << endl;
+		cerr << "X: " << g.vertices.back().x << " Y: " << g.vertices.back().y << endl;
 		//for(int k=0;k<g.renderpoints.size();k++){
 			//cerr << "X: " << g.renderpoints[k].x << " Y: " << g.renderpoints[k].y << endl;
 		//}
 
-		SDL_RenderClear(renderer);
-    	SDL_RenderCopy(renderer, texture, NULL, NULL);
+		//SDL_RenderClear(renderer);
+    	//SDL_RenderCopy(renderer, texture, NULL, NULL);
 		/*if(SDL_RenderDrawLines(renderer,&g.renderpoints[0],g.renderpoints.size())!=0){
         	fprintf(stderr, "Error: Unable to render lines: %s\n", SDL_GetError());
         	exit(1);
     	}*/
 
-        for(int e=0;e<g.edges.size();++e){
-       		if(SDL_RenderDrawLine(renderer,g.edges[e].one.x,g.edges[e].one.y,g.edges[e].two.x,g.edges[e].two.y)!=0){
-        		fprintf(stderr, "Error: Unable to render lines: %s\n", SDL_GetError());
-        		exit(1);
-    		}
-    	}
+        //for(int e=0;e<g.edges.size();++e){
+       	//	if(SDL_RenderDrawLine(renderer,g.edges[e].one.x,g.edges[e].one.y,g.edges[e].two.x,g.edges[e].two.y)!=0){
+        //		fprintf(stderr, "Error: Unable to render lines: %s\n", SDL_GetError());
+        //		exit(1);
+    	//	}
+    	//}
 
     	//SDL_RenderSetScale( renderer, 3, 3 );
 
-    	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-    	SDL_RenderDrawPoint(renderer,g.goal.x,g.goal.y);
-    	SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-    	SDL_RenderDrawPoint(renderer,g.start.x,g.start.y);
-    	SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+    	//SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    	//SDL_RenderDrawPoint(renderer,g.goal.x,g.goal.y);
+    	//SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    	//SDL_RenderDrawPoint(renderer,g.start.x,g.start.y);
+    	//SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
     	//SDL_RenderSetScale( renderer, 1, 1 );
 
-    	SDL_RenderPresent(renderer);
+    	//SDL_RenderPresent(renderer);
     	//SDL_RenderPresent(renderer);
 
-    	if((pnew.x==g.start.x)&&(pnew.y==g.start.y)){
+    	/*if((pnew.x==g.start.x)&&(pnew.y==g.start.y)){
     		cerr << "Graph complete" << endl;
     		while(true){
     			getInput();
     		}
     		//SDL_RenderPresent(renderer);
-    	}
-
+    	}*/
+    	draw();
     	getInput();
-    	SDL_Delay(500);
+    	//SDL_Delay(500);
 
 	//}
-	return g;
+	//return g;
 }
+
+bool near(GVertex o, GVertex t){
+	return ((o.x-.05<=t.x && t.x<=o.x+.05)&&(o.y-.05<=t.y && t.y<=o.y+.05));
+}
+
+double bearing(){
+	return atan2(g.vertices.back().y-robot.y,g.vertices.back().x-robot.x);
+}
+
+bool isFacing(){
+	double num=bearing();
+	return ((num-.05 <= robot.h) && (robot.h <= num+.05));
+}
+
+void moveTo(){
+	while(!near(GVertex(robot.x,robot.y),g.vertices.back())){
+		base_cmd.linear.x=.25;
+	}
+}
+
+bool reachGoal(){
+	return (near(GVertex(robot.x,robot.y),g.goal));
+}
+
+void turnRobot(){
+	while(!isFacing()){
+		if(bearing()-robot.h>0){
+			base_cmd.angular.z=-0.25;
+		}else{
+			base_cmd.angular.z=0.25;
+		}
+	}
+}	
 
 int main(int argc, char **argv){
 
@@ -510,12 +536,12 @@ int main(int argc, char **argv){
 	ros::NodeHandle nh_;
 	ros::Publisher cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
 	nh_.getParam("tf_prefix", tf_prefix);
-	geometry_msgs::Twist base_cmd;
 	string input;
 	int state;
 
+	int arraywidth=820;
+	int arrayheight=700;
 	int x,y;
-	srand (time(NULL));
 
 	if(SDL_Init(SDL_INIT_EVERYTHING)!=0){
         fprintf(stderr, "Error: Unable to init SDL: %s\n", SDL_GetError());
@@ -565,7 +591,6 @@ int main(int argc, char **argv){
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
    	//SDL_RenderFillRect( renderer, &r );
     //Render the rect to the screen
@@ -591,12 +616,21 @@ int main(int argc, char **argv){
 	ros::Rate loop_rate(10);
 	pair<GVertex,GVertex> ginit = make_pair(start,goal);
 
-	RRT(ginit,3000,10);
+	//RRT(ginit,10);
+
+	g=Graph(ginit,30,10);
 
 	while(ros::ok()){
 		
 		cmd_vel_pub_.publish(base_cmd);
-		
+
+		RRT();
+		turnRobot();
+		moveTo();
+		if(reachGoal()){
+			break;
+		}
+		getInput();
 
 		ros::spinOnce();
 		loop_rate.sleep();

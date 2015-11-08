@@ -55,26 +55,6 @@ struct GEdges{
 	GVertex two;
 };
 
-struct GNodes{
-	GNodes(){}
-	GNodes(GVertex v){
-		vertex.x=v.x;
-		vertex.y=v.y;
-		parent=NULL;
-
-	}
-	GNodes(GNodes *newParent,GVertex point){
-		parent=new GNodes;
-		parent=newParent;
-		vertex.x=point.x;
-		vertex.y=point.y;
-	}
-
-	GNodes *parent;
-	vector<GNodes> children;
-	GVertex vertex;
-};
-
 struct Graph{
 	Graph(){}
 	Graph(pair<GVertex, GVertex> init, int k,int newdelta){
@@ -101,8 +81,6 @@ struct Graph{
 	vector<GVertex> vertices;
 	GNodes root;
 }g;
-
-GVertex robpos;
 
 GVertex getRobotPosition();
 vector<GVertex> Bresenham(GVertex point1, GVertex point2);
@@ -144,10 +122,6 @@ Algorithm BuildRRT
         theta = atan2(p2[1]-p1[1],p2[0]-p1[0])
         return p1[0] + EPSILON*cos(theta), p1[1] + EPSILON*sin(theta)
 */
-
-GVertex coordCovert(GVertex){
-
-}
 
 float dist(GVertex a,GVertex b){
 	return sqrt(((a.x-b.x)*(a.x-b.x))+((a.y-b.y)*(a.y-b.y)));
