@@ -1,6 +1,8 @@
 
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
+#include <tf/transform_broadcaster.h>
+#include <nav_msgs/Odometry.h>
 #include <std_msgs/String.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -30,6 +32,10 @@ Uint8 red, green, blue, alpha;
 SDL_Color color;
 
 geometry_msgs::Twist base_cmd;
+nav_msgs::Odometry odom;
+
+ros::Publisher cmd_vel_pub_;
+ros::Publisher odom_pub;
 
 std::random_device seeder;
 std::mt19937 engine(seeder());
@@ -94,8 +100,8 @@ struct Graph{
 
 struct Robot{
 	Robot(){}
-	Robot(double h,int posx,int posy){
-		h=h;
+	Robot(double newh,int posx,int posy){
+		h=newh;
 		x=posx;
 		y=posy;
 	}
@@ -119,7 +125,7 @@ void add_vertex(GVertex pnear,GVertex pnew);
 
 GVertex randConf();
 vector<GVertex> newConf(vector<GVertex> prand);
-void RRT(pair<GVertex,GVertex> qinit,int kvertices,int delta);
+bool RRT();
 
 void turnRobot();
 void moveTo();
@@ -154,6 +160,8 @@ void getRobotPosition(){
     tf::TransformListener listener;
     tf::StampedTransform transform;
 
+    cerr << "GET ROBOT POS" << endl;
+
     try {
         string base_footprint_frame = tf::resolve(tf_prefix, "base_footprint");
 	
@@ -161,7 +169,50 @@ void getRobotPosition(){
     	listener.lookupTransform("/odom", base_footprint_frame, ros::Time(0), transform);
 
        	robot=Robot(tf::getYaw(transform.getRotation()),transform.getOrigin().x(),transform.getOrigin().y());
-       	cerr << "Robot:" << "Heading: " << robot.h << "Robot pos x: " << robot.x << "Robot pos y: " << robot.y  << endl;
+       	cerr << "Robot ->" << " Heading: " << robot.h << " Robot pos x: " << robot.x << " Robot pos y: " << robot.y  << endl;
+    }
+    catch (tf::TransformException &ex) {
+		ROS_ERROR("%s",ex.what());
+    }
+}
+
+void setRobotPosition(){
+    tf::TransformBroadcaster transformBroadcaster;
+    tf::StampedTransform transform;
+    geometry_msgs::TransformStamped odom_trans;
+
+    cerr << "SET ROBOT POS" << endl;
+
+    try {
+    	ros::Time current_time = ros::Time::now();
+        string base_footprint_frame = tf::resolve(tf_prefix, "base_footprint");
+        odom_trans.header.stamp = current_time;
+        odom_trans.transform.translation.x = g.start.x;
+        odom_trans.transform.translation.y = g.start.y;
+        odom_trans.header.frame_id = "odom";
+        odom_trans.child_frame_id = "base_link";
+        odom_trans.transform.translation.z = 0.0;
+        odom_trans.transform.rotation = tf::createQuaternionMsgFromYaw(0);
+
+        
+     odom.header.stamp = current_time;
+     odom.header.frame_id = "odom";
+   
+     odom.pose.pose.position.x = g.start.x;
+     odom.pose.pose.position.y = g.start.y;
+     odom.pose.pose.position.z = 0.0;
+     odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(0);
+   
+     odom.child_frame_id = "base_link";
+     odom.twist.twist.linear.x = 0;
+     odom.twist.twist.linear.y = 0;
+     odom.twist.twist.angular.z = 0.0;
+   
+		cerr << "x: " << odom.pose.pose.position.x << "y: " <<  odom.pose.pose.position.y << endl;
+
+		transformBroadcaster.sendTransform(odom_trans);
+		odom_pub.publish(odom);
+       	//cerr << "Robot:" << "Heading: " << robot.h << "Robot pos x: " << robot.x << "Robot pos y: " << robot.y  << endl;
     }
     catch (tf::TransformException &ex) {
 		ROS_ERROR("%s",ex.what());
@@ -205,12 +256,12 @@ Uint32 getpixel(SDL_Surface *surface, int x, int y){
 
 //returns true if white
 bool checkPixel(int x, int y){
-	cerr << "Check Pixel" << endl;
+	//cerr << "Check Pixel" << endl;
 	SDL_LockSurface(surface);
 	int pixel = getpixel(surface,x,y);
 	SDL_UnlockSurface(surface);
 	SDL_GetRGBA(pixel,surface->format,&red,&green,&blue,&alpha);
-	fprintf(stderr, "Pixel info x: %d y: %d -> R: %d G: %d B: %d\n",x,y,red,green,blue);
+	//fprintf(stderr, "Pixel info x: %d y: %d -> R: %d G: %d B: %d\n",x,y,red,green,blue);
 	return (red==255 && green==255 && blue==255);
 }
 
@@ -336,14 +387,16 @@ cerr << "Bresenham line:" << endl;
 
 //true if line is white
 bool checkLine(GVertex pnear, GVertex prand){
-	cerr << "CheckLine" << endl;
+	//cerr << "CheckLine" << endl;
 
 	vector<GVertex> v(Bresenham(pnear,prand));
 		for(int i=0;i<v.size();++i){
 			if(!checkPixel(v[i].x,v[i].y)){
+				//cerr << "false" << endl;
 				return false;
 			}
 		}
+		//cerr << "true" << endl;
 		return true;
 }
 
@@ -368,24 +421,35 @@ bool nearestVertex(GVertex prand,GVertex nearest){
 	return false;
 }
 
+bool equal(GVertex p1,GVertex p2){
+	return (p1.x==p2.x&&p1.y==p2.y);
+}
+
 GVertex getNearestVertex(vector<GVertex> prand){
-	cerr << "Nearest Vertex" << endl;
-	GVertex temp=GVertex(prand.back());
+	//cerr << "Nearest Vertex" << endl;
+	GVertex temp=GVertex(prand.back().x,prand.back().y);
 	while(!prand.empty()){
-		draw(prand,temp);
     	/*for(int e=0;e<prand.size();++e){
        		if(SDL_RenderDrawLine(renderer,g.vertices.back().x,g.vertices.back().y,prand[e].x,prand[e].y)!=0){
         		fprintf(stderr, "Error: Unable to render lines: %s\n", SDL_GetError());
         		exit(1);
     		}
     	}*/
-		if(nearestVertex(prand.back(),temp)){
-			temp.x=prand.back().x;
-			temp.y=prand.back().y;
+   		if(!checkLine(g.vertices.back(),prand.back())){
+    		//temp=GVertex(prand.end()-1;
+    		if(equal(temp,prand.back())){
+    			prand.pop_back();
+    			temp=GVertex(prand.back().x,prand.back().y);
+    		}else{
+    			prand.pop_back();
+    		}
+    	}else if(nearestVertex(prand.back(),temp)){
+			temp=GVertex(prand.back().x,prand.back().y);
 			prand.pop_back();
 		}else{
 			prand.pop_back();
 		}
+		draw(prand,temp);
 		getInput();
 	}
 	return temp;
@@ -396,7 +460,7 @@ GVertex convertCoords(GVertex point){
 }
 
 void add_vertex(GVertex pnear,GVertex pnew){
-	cerr << "Add Vertex" << endl;
+	//cerr << "Add Vertex" << endl;
 	//SDL_Point p={pnew.x,pnew.y};
 	//SDL_Point p={pnear.x,pnear.y};
 	//g.renderpoints.push_back(p);
@@ -406,7 +470,7 @@ void add_vertex(GVertex pnear,GVertex pnew){
 }
 
 vector<GVertex> rand_conf(){
-	cerr << "Random Configuration" << endl;
+	//cerr << "Random Configuration" << endl;
 
 	int x,y;
 	//GVertex p;
@@ -449,11 +513,11 @@ vector<GVertex> rand_conf(){
 			pixel = getpixel(surface,x,y);
 			SDL_UnlockSurface(surface);
 			SDL_GetRGBA(pixel,surface->format,&red,&green,&blue,&alpha);
-			if(checkLine(g.vertices.back(),GVertex(x,y))){
+			/*if(checkLine(g.vertices.back(),GVertex(x,y))){
 				break;
-			}
+			}*/
 			getInput();
-			fprintf(stderr, "Pixel %d x: %d y: %d Color -> R: %d G: %d B: %d A: %d \n",pixel,x,y,red,green,blue,alpha);
+			//fprintf(stderr, "Pixel %d x: %d y: %d Color -> R: %d G: %d B: %d A: %d \n",pixel,x,y,red,green,blue,alpha);
 		}while(red==0&&green==0&&blue==0);
 
 		v.push_back(GVertex(x,y));
@@ -505,8 +569,8 @@ vector<GVertex> rand_conf(){
 			}*/
 
 GVertex nearGoal(GVertex pnew){
-	cerr << "NEAR GOAL" << endl;
-	if(dist(g.vertices.back(),g.goal)<=g.delta && checkLine(g.vertices.back(),g.goal)){
+	//cerr << "NEAR GOAL" << endl;
+	if(dist(g.vertices.back(),g.goal)<=g.delta && checkLine(g.vertices.back(),g.goal) && (dist(pnew,g.goal)>dist(g.vertices.back(),g.goal))){
 		return g.goal;
 	}
 	return pnew;
@@ -542,17 +606,17 @@ void draw(vector<GVertex> prand,GVertex v){
     	}
     }
 
-     SDL_RenderSetScale( renderer, 3, 3 );
+    SDL_RenderSetScale( renderer, 2, 2 );
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-    SDL_RenderDrawPoint(renderer,g.goal.x,g.goal.y);
+    SDL_RenderDrawPoint(renderer,g.goal.x/2,g.goal.y/2);
     SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-    SDL_RenderDrawPoint(renderer,g.start.x,g.start.y);
+    SDL_RenderDrawPoint(renderer,g.start.x/2,g.start.y/2);
  	SDL_RenderSetScale( renderer, 1, 1);
     SDL_RenderPresent(renderer);
     SDL_Delay(200);
 }
 
-void RRT(){
+bool RRT(){
 	GVertex pnear,pnew;
 	
 	//for(int i = 1; i <= g.maxvertices; ++i){
@@ -561,14 +625,15 @@ void RRT(){
 	//vector<GVertex> v=newConf(prand);
 	//if(!v.empty()){
 		pnew=getNearestVertex(prand);
+	if(pnew.x!=-1 || pnew.y!=-1){
 		pnew=nearGoal(pnew);
 		add_vertex(g.vertices.back(),pnew);
 
 
 		//SDL_RenderPresent(renderer);
 		//cerr << "List of points: " << i << endl;
-		cerr << "NEW point: " << endl;
-		cerr << "X: " << g.vertices.back().x << " Y: " << g.vertices.back().y << endl;
+		//cerr << "NEW point: " << endl;
+		//cerr << "X: " << g.vertices.back().x << " Y: " << g.vertices.back().y << endl;
 		//for(int k=0;k<g.renderpoints.size();k++){
 			//cerr << "X: " << g.renderpoints[k].x << " Y: " << g.renderpoints[k].y << endl;
 		//}
@@ -607,14 +672,13 @@ void RRT(){
     		//SDL_RenderPresent(renderer);
     	}*/
     	//draw(prand);
-    	//return true;
-   // }else{
-    //	return false;
-    //}
-    	getInput();
+    		getInput();
+    return true;
+   }else{
+    	return false;
+   }
+    	
     	//SDL_Delay(500);
-
-	//}
 	//return g;
 }
 
@@ -636,6 +700,7 @@ void moveTo(){
 		base_cmd.linear.x=.25;
 		draw(vector<GVertex>(),GVertex());
 		getInput();
+		cmd_vel_pub_.publish(base_cmd);
 	}
 }
 
@@ -648,6 +713,7 @@ bool reachGoal(){
 }
 
 void turnRobot(){
+	cerr << "TURN" << endl;
 	while(!isFacing()){
 		if(bearing()-robot.h>0){
 			base_cmd.angular.z=-0.25;
@@ -656,6 +722,7 @@ void turnRobot(){
 		}
 		draw(vector<GVertex>(),GVertex());
 		getInput();
+		cmd_vel_pub_.publish(base_cmd);
 	}
 }	
 
@@ -663,7 +730,8 @@ int main(int argc, char **argv){
 
 	ros::init(argc, argv, "assignment2");
 	ros::NodeHandle nh_;
-	ros::Publisher cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+	cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+	odom_pub = nh_.advertise<nav_msgs::Odometry>("odom", 1);
 	nh_.getParam("tf_prefix", tf_prefix);
 	string input;
 	int state;
@@ -753,13 +821,18 @@ int main(int argc, char **argv){
 
 	//RRT(ginit,10);
 
-	g=Graph(ginit,30,40);
+	g=Graph(ginit,10,40);
+
+	//s/etRobotPosition();
+   
+    //odom_pub.publish(odom);
 
 	while(ros::ok()){
 		
 		cmd_vel_pub_.publish(base_cmd);
-
-		RRT();
+//odom_pub.publish(odom);
+		if(RRT()){
+		//getRobotPosition();
 		//turnRobot();
 		//moveTo();
 			if(reachGoal()){
@@ -768,7 +841,7 @@ int main(int argc, char **argv){
 					getInput();
 				}
 			}
-		
+		}
 		//draw();
 		getInput();
 

@@ -42,6 +42,9 @@ int main(int argc, char **argv)
 	/// The main loop will run at a rate of 10Hz, i.e., 10 times per second.
 	ros::Rate loop_rate(10);
 	/// Standard way to run ros code. Will quite if ROS is not OK, that is, the master is dead.
+
+		
+
 	while (ros::ok())
 	{
 		std::cin.getline(cmd, 50);
